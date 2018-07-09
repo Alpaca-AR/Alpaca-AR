@@ -1,0 +1,66 @@
+{
+  "name": "Alpaca",
+  "version": "0.0.1",
+  "manifest_version": 2,
+  "description": "Mixed Reality",
+  "content_scripts": [
+    {
+      "js": ["inject-nps.js"],
+      "matches": [
+        "https://science.nature.nps.gov/parks/grsm/species/"
+      ]
+    },
+    {
+      "js": ["inject-nps.js"],
+      "matches": [
+        "http://auxiliarymaya.nomads.utk.edu:8080/"
+      ]
+    },
+    {
+      "js": ["inject-youtube.js"],
+      "matches": [
+        "https://youtube.com/*",
+        "https://www.youtube.com/*"
+      ]
+    },
+    {
+      "js": ["inject-leaflet.js"],
+      "matches": [
+        "http://alpaca.127.0.0.1.xip.io:8080/leaflet/"
+      ]
+    },
+    {
+      "js": ["inject-game.js"],
+      "matches": [
+        "http://game.127.0.0.1.xip.io:8080/game/"
+      ]
+    },
+    {
+      "js": ["inject-pdf.js"],
+      "matches": [
+        "http://pdf.127.0.0.1.xip.io:8080/pdf/"
+      ]
+    },
+    {
+      "js": ["inject-book.js"],
+      "matches": [
+        "https://books.google.com/*"
+      ]
+    },
+    {
+      "js": ["inject-nps-local.js"],
+      "matches": [
+        "http://seelab.eecs.utk.edu/species_mapper/full/"
+      ]
+    }
+  ],
+  "browser_action": {
+    "default_title": "Alpaca",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "https://*/*",
+    "http://*/*",
+    "tabs"
+  ]
+}

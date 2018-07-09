@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+.section {
+	border-bottom: 1px solid black;
+}
+</style>
+<div id=app>
+
+<div class=section>
+	<p><pre>GET /store/</pre></p>
+	<button class=js-get-store>GET</button>
+</div>
+
+<div class=section>
+	<p><pre>GET /store/:namespace</pre></p>
+	<input name=namespace class=js-get-store-namespace>
+	<button class=js-get-store-namespace>GET</button>
+</div>
+
+</div>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<script type="text/babel" data-presets="stage-0">
+(async () => {
+
+
+
+})();
+</script>
