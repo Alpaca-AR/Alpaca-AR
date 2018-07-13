@@ -24,6 +24,7 @@ async def index(request):
 		text=path.read_text(),
 	)
 
+routes.static('/js', str(Path(__file__).with_name('html') / 'js'))
 
 @routes.get('/m/')
 async def mobile(request):

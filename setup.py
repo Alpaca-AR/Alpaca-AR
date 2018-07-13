@@ -18,6 +18,7 @@ setup(
 	package_data={
 		'alpaca': [
 			'http_store/html/index.html',
+      'html/js/object-store.js'
 		],
 	},
 	entry_points={
