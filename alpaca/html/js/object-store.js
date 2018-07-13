@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<script type="text/javascript" src="/js/object-store.js"></script>
-<script>
 function testingHelper(request) {
   if (request == "GNL") {
     getNamespaceList().then(d => {
@@ -128,20 +125,3 @@ function updateNamespaceObject(namespace, objName, obj) {
     .then(response => response.json())
     .catch(err => console.error("Fetch Error =\n", err));
 }
-</script>
-<title>Alpaca</title>
-<style>
-</style>
-
-<body>
-  Namespace: <input type="text" id="namespace"><br>
-  Obj as JSON string: <input type="text" id="json"> Example obj for testing: { "a": 1, "b": "test", "c": { "d": null} }<br>
-  Obj Name: <input type="text" id="name"><br>
-  <button onclick="testingHelper('GNL')">Get namespaces</button><br>
-  <button onclick="testingHelper('GNOL')">Get object list in namespace</button><br>
-  <button onclick="testingHelper('MNO')">Make namespace object</button><span id="made"></span><br>
-  <button onclick="testingHelper('GNO')">Get namespace object</button><span id="got"></span><br>
-  <button onclick="testingHelper('UNO')">Update namespace object</button><span id="updated" style="display: none;">Object updated</span><br>
-  <span id='namespace-span'></span>
-  <span id='objectlist-span'></span>
-</body>
