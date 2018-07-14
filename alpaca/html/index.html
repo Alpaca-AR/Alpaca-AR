@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <script type="text/javascript" src="js/object-store.js"></script>
+<script type="text/javascript" src="js/make-tree.js"></script>
+<script type="text/javascript" src="js/watch-tree.js"></script>
 <title>Alpaca</title>
 <style>
 </style>
@@ -22,3 +24,14 @@
     </span>
   </span>
 </body>
+
+<script>
+  let element = document.body;
+  console.log('Making tree with document.body')
+  let tree = makeTree(element)
+  console.log('Tree made: ', tree)
+  watch(element, (mutations) => {
+    tree = makeTree(element)
+    console.log(JSON.stringify(tree))
+  })
+</script>

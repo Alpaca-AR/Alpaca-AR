@@ -3,17 +3,17 @@ function startTree(element) {
     console.error('Element passed to makeTree is not of type HTML Element');
     return null;
   }
-  let obj = {};
-  obj.tree = {};
-  obj.tree.type = element.tagName;
-  obj.tree.attributes = {}; //might want to always make this
+  let parent = {};
+  parent.tree = {};
+  parent.tree.type = element.tagName;
+  parent.tree.attributes = {};
 
   for (let i = 0; i < element.attributes.length; i++) {
-    obj.tree.attributes[element.attributes[i].name] = element.attributes[i].value;
+    parent.tree.attributes[element.attributes[i].name] = element.attributes[i].value;
   }
-  obj.tree.children = makeTree(element);
+  parent.tree.children = makeTree(element);
 
-  return obj;
+  return parent;
 }
 
 function makeTree(element) {
