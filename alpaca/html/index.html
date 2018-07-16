@@ -26,12 +26,22 @@
 </body>
 
 <script>
-  let element = document.body;
+  let element = document.body
   console.log('Making tree with document.body')
   let tree = makeTree(element)
   console.log('Tree made: ', tree)
+  let objName, namespace = 'test'
+  makeNamespaceObject(namespace, tree)
+    .then(d => {
+      objName = d.data.url.split('/')[3]
+      console.log('Storing DOM at:', objName)
+    })
+
   watch(element, (mutations) => {
     tree = makeTree(element)
-    console.log(JSON.stringify(tree))
+    updateNamespaceObject(namespace, objName, tree)
+      .then(d => {
+        console.log(d)
+      })
   })
 </script>

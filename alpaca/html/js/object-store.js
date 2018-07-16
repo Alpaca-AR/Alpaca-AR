@@ -31,7 +31,7 @@ function testingHelper(request) {
           "</ul>";
       } else {
         span.innerHTML =
-          "Objects in namespace list" + namespace + ": <br><ul>None</ul>";
+          "Objects in namespace list " + namespace + ": <br><ul>None</ul>";
       }
     });
   }
