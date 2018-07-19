@@ -17,12 +17,23 @@
   <button onclick="testingHelper('MNO')">Make namespace object</button><span id="made"></span><br>
   <button onclick="testingHelper('GNO')">Get namespace object</button><span id="got"></span><br>
   <button onclick="testingHelper('UNO')">Update namespace object</button><span id="updated" style="display: none;">Object updated</span><br>
+  <button onclick="remove('test2')">Delete "span id='test2'"</button>
+  <button onclick="remove('test3')">Delete "span id='test3'"</button>
+  <button onclick="remove('test4')">Delete "span id='test4'"</button>
   <span id='namespace-span'></span>
   <span id='objectlist-span'></span>
-  <span id='pattern'>
+  <span class='pattern'>
     <span id='test1'>
       <span id='test2'></span>
-      <span id='test3'></span>
+      <span id='test3'>
+        <span id='test5'></span>
+        <span id='test6'></span>
+      </span>
+      <span id='test4'>
+        <span id='test7'>
+          <span id='test8'></span>
+        </span>
+      </span>
     </span>
   </span>
   <span id='barrier'></span>
@@ -30,15 +41,31 @@
 </body>
 
 <script>
-  let element = document.body
+  //let element = document.body
+  let element = document.getElementsByClassName('pattern')[0];
   //console.log('Making tree with document.body')
-  let tree = startTree(element)
+  let tree = startTree(element);
   //console.log('Tree made: ', tree)
-  let objName, namespace = 'test'
+  let objName, namespace = 'test';
   makeNamespaceObject(namespace, tree)
     .then(d => {
-      objName = d.data.url.split('/')[3]
+      objName = d.data.url.split('/')[3];
       //console.log('Storing DOM at:', objName)
+      
+      let sock = new WebSocket(location.href.replace('http', 'ws') + 'store/' + namespace + '/' + objName);
+      sock.onopen = (e) => console.log('Successful connection made to ' + e.target.url.replace('ws', 'http'));
+      sock.onmessage = (e) => {
+        let serialized;
+        try {
+          serialized = JSON.parse(e.data);
+        }
+        catch (err) {
+          console.log('There was an error with parsing the object as JSON. Error: ', err);
+          return;
+        }
+        let target = document.getElementById('target') || document.getElementsByClassName('pattern')[1];
+        patch(target, serialized);
+      };
     })
 
   watch(element, (mutations) => {
@@ -46,11 +73,7 @@
     updateNamespaceObject(namespace, objName, tree)
       .then(d => {
         //console.log(d)
-      })
-  })
+      });
+  });
 
-  let pattern = document.getElementById('pattern')
-  let target = document.getElementById('target')
-  let serialized = startTree(pattern)
-  patch(target, serialized)
 </script>

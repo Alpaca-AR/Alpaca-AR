@@ -1,3 +1,4 @@
+/* testing purposes only */
 function testingHelper(request) {
   if (request == "GNL") {
     getNamespaceList().then(d => {
@@ -64,6 +65,21 @@ function testingHelper(request) {
   }
 }
 
+/* testing purposes only */
+function remove(name) {
+  document.getElementById(name).remove();
+}
+
+
+
+
+
+
+
+
+
+
+/* for normal use */
 function getNamespaceList() {
   let req = new Request("/store/");
   return fetch(req, {
