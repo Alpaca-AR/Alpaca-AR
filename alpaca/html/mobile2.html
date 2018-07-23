@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>
+:root {
+	--toolbar-height: 40px;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+.toolbar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100vw;
+	height: var(--toolbar-height);
+	display: flex;
+	flex-direction: row;
+	align-item: stretch;
+	justify-content: stretch;
+}
+
+.inputbar {
+  position: fixed;
+  bottom: var(--toolbar-height);
+  width: 100vw;
+}
+
+.inputbar > div {
+  display: inline-block;
+}
+
+.img-src {
+  position: fixed;
+  bottom: var(--toolbar-height);
+  width: 100vw;
+  height: var(--toolbar-height);
+  z-index: 1;
+}
+
+.toolbar--button {
+	width: auto;
+	flex: 1;
+}
+
+#theLogger {
+	position: fixed;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	display: none;
+}
+
+.hide-ui .toolbar,
+.hide-ui #theLogger,
+.hide-ui canvas[width="80"] {
+	display: none !important;
+}
+</style>
+<body>
+<div id="app">
+  <div id="canvas"></div>
+  <div class="inputbar"></div>
+  <div class="toolbar">
+    <button class="toolbar--button js-toolbar-add">Add Object</button>
+    <button class="toolbar--button js-toolbar-remove">Remove Object</button>
+    <button class="toolbar--button js-toolbar-select">Select & Change Image</button>
+	</div>
+</div>
+<div id="theLogger"></div>
+<div id="scene-tree"></div>
+<script>
+(function() {
+	console.log = makeLogger(console.log, 'log');
+	console.warn = makeLogger(console.warn, 'warn');
+	console.error = makeLogger(console.error, 'error');
+	
+	function makeLogger(old, type) {
+		const logger = document.getElementById('theLogger');
+		
+		return function() {
+			const pre = document.createElement('pre');
+			const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
+			pre.appendChild(text);
+			logger.appendChild(pre);
+			old.apply(console, arguments);
+		};
+		
+	}
+})();
+</script>
+<script type="text/javascript" src="../js/object-store.js"></script>
+<script type="text/javascript" src="../js/make-tree.js"></script>
+<script type="text/javascript" src="../js/watch-tree.js"></script>
+<script type="text/javascript" src="../js/patch-tree.js"></script>
+<script type="text/javascript" src="https://unpkg.com/morphdom@2.3.3/dist/morphdom.js"></script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
+<script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+<script type="text/babel" data-presets="stage-0">
+(async () => {
+
+let objCount = 1, objString = 'index.json'; //change objString for testing
+
+// three.ar.js returns falsey if this is not an AR device.
+// Can be used to detect if this is a desktop web browser.
+const display = do {
+  await THREE.ARUtils.getARDisplay();
+};
+
+if (display) {
+  document.getElementsByClassName('toolbar')[0].style.display = 'none';
+  document.getElementsByClassName('inputbar')[0].style.display = 'none';
+}
+
+const loader = do {
+	new THREE.TextureLoader();
+};
+
+const renderer = do {
+	const renderer = new THREE.WebGLRenderer({ alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  if (display) {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  } else {
+    renderer.setSize(window.innerWidth, window.innerHeight - 40);
+  }
+	renderer.autoClear = false;
+	renderer;
+};
+
+const canvas = do {
+	const canvas = renderer.domElement;
+	document.getElementById('canvas').appendChild(canvas);
+	canvas;
+};
+
+const scenes = do {
+	const main = new THREE.Scene(),
+	      reticle = new THREE.Scene(),
+	      scenes = { main, reticle };
+	scenes;
+};
+
+const center = do {
+	const geometry = do {
+		const size = 0.1;
+		new THREE.BoxBufferGeometry(size, size, size);
+	};
+	
+	const material = do {
+		const color = 0xff00ff;
+		new THREE.MeshBasicMaterial({ color })
+	};
+	
+	const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(1, 0, 0)
+	mesh;
+};
+
+const view = do {
+	if (display) {
+		new THREE.ARView(display, renderer);
+	} else {
+		null;
+	}
+};
+
+const camera = do {
+	const fov = 60,
+	      aspect = window.innerWidth / window.innerHeight;
+	if (display) {
+		const zNear = display.depthNear,
+		      zFar = display.depthFar,
+		      camera = new THREE.ARPerspectiveCamera(display, fov, aspect, zNear, zFar);
+		camera;
+	} else {
+		const zNear = 0.1,
+		      zFar = 1000,
+		      camera = new THREE.PerspectiveCamera(fov, aspect, zNear, zFar);
+		camera.position.set(-0.25, 0, 0);
+		camera;
+	}
+};
+
+const reticle = do {
+	if (display) {
+		const inRadius = 0.03,
+		      outRadius = 0.04,
+		      color = 0xff0077,
+		      easing = 0.25,
+		      reticle = new THREE.ARReticle(display, inRadius, outRadius, color, easing);
+		scenes.reticle.add(reticle);
+		reticle;
+	} else {
+		null;
+	}
+};
+
+const controls = do {
+	if (display) {
+		new THREE.VRControls(camera);
+	} else {
+		const controls = new THREE.OrbitControls(camera);
+		patchControls(controls);
+		controls;
+	}
+};
+
+var stats1, stats2, stats3;
+const p1 = do {
+	const panel = do {
+		const label = 'p1',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(0);
+		stats.dom.style.top = `${0 * 48}px`;
+    document.body.appendChild(stats.dom);
+    stats1 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+const p2 = do {
+	const panel = do {
+		const label = 'p2',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(2);
+		stats.dom.style.top = `${1 * 48}px`;
+    document.body.appendChild(stats.dom);
+    stats2 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+const p3 = do {
+	const panel = do {
+		const label = 'p3',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(1);
+		stats.dom.style.top = `${2 * 48}px`;
+    document.body.appendChild(stats.dom);
+    stats3 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+const alpacaObjects = do {
+	const group = new THREE.Group();
+	scenes.main.add(group);
+	group;
+};
+
+
+const img1 = '../img/256x256.png',
+  img2 = '../img/512x512.png';
+
+texture1 = loader.load(img1);
+texture2 = loader.load(img2);
+if (!display) makePlane();
+
+document
+  .getElementsByClassName('js-toolbar-add')[0]
+  .addEventListener(
+    'click', 
+    () => {
+      makePlane();
+    }
+  )
+
+document
+  .getElementsByClassName('js-toolbar-remove')[0]
+  .addEventListener(
+    'click', 
+    () => {
+      removeCheckedObject(findChecked());
+    }
+  )
+
+document
+  .getElementsByClassName('js-toolbar-select')[0]
+  .addEventListener(
+    'click', 
+    () => {
+      changeCheckedObject(findCheckedObject());
+    }
+  )
+
+function makePlane() {
+  const geometry = new THREE.PlaneGeometry(0.05, 0.05);
+  
+  const material = do {
+    const color = 0xff00ff;
+		new THREE.MeshBasicMaterial({ color })
+  }
+  material.side = THREE.DoubleSide;
+
+  material.map = texture1;
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0, 0, (objCount - 1)/10);
+
+  mesh.name = (objCount++).toString();
+  addObjectButton(mesh.name);
+  alpacaObjects.add(mesh);
+  changed();
+}
+
+function addObjectButton(name) {
+  let radio = '<input type="radio" id="' + name + '" name="objs"/>'
+            + '<label for="' + name + '">' + name + '</label>';
+  let container = document.createElement('div');
+  container.innerHTML = radio;
+  document.getElementsByClassName('inputbar')[0].append(container);
+}
+
+function findCheckedObject() {
+  objectButtons = document.getElementsByClassName('inputbar')[0].children;
+  for (let i = 0; i < objectButtons.length; i++) {
+    if (objectButtons[i].children[0].checked) {
+      return objectButtons[i].children[1].innerText;
+    }
+  }
+  return null;
+}
+
+function changeCheckedObject(val) {
+  if (val == null) return;
+  let children = alpacaObjects.children;
+  for (let i in children) {
+    if (children[i].name == val) {
+      if(children[i].material.map == texture1) {
+        children[i].material.map = texture2;
+      } else {
+        children[i].material.map = texture1;
+      }
+      changed();
+      return;
+    }
+  }
+}
+
+function removeCheckedObject(val) {
+  if (val == null) return;
+  let children = alpacaObjects.children;
+  for (let i in children) {
+    if (children[i].name == val) {
+      alpacaObjects.remove(children[i]);
+      let el = document.getElementById(val);
+      el.parentNode.parentNode.removeChild(el.parentNode);
+      changed();
+      return;
+    }
+  }
+}
+
+let namespace = 'alpaca';
+let tree = startTree(document.getElementById('scene-tree'));
+let objName;
+if (!display) {
+  makeNamespaceObject(namespace, tree)
+      .then(d => {
+        objName = d.data.url.split('/')[3];
+      })
+
+  watch(document.getElementById('scene-tree'), () => {
+      tree = startTree(document.getElementById('scene-tree'))
+      updateNamespaceObject(namespace, objName, tree)
+        .then(d => {
+          console.log('updating', d)
+        });
+    });
+} else {
+  let sock = new WebSocket(location.href.replace('http', 'ws').replace('m/', '') + 'store/' + namespace + '/' + objString);
+  sock.onopen = (e) => console.log('Successful connection made to ' + e.target.url.replace('ws', 'http'));
+  sock.onmessage = (e) => {
+    let deserialized;
+    try {
+      deserialized = JSON.parse(e.data);
+    }
+    catch (err) {
+      console.log('There was an error with parsing the object as JSON. Error: ', err);
+      return;
+    }
+    let target = document.getElementById('scene-tree');
+    patch(target, deserialized);
+    updateScene(document.getElementById('scene-tree').children[0]);
+  };
+}
+
+function updateScene(parent) {
+  const { position, rotation, scale} = parent.dataset;
+  clear(alpacaObjects);
+  if (parent.children.length) {
+    for (let i = 0; i < parent.children.length; i++) {
+      updateObjs(parent.children[i]);
+    }
+  }
+}
+
+const objLoader = do{
+  new THREE.ObjectLoader();
+}
+
+function updateObjs(parent) {
+  let { object, material, position, rotation, scale, type } = parent.dataset;
+//  if (type) console.log('type', type);
+  if (position) position = JSON.parse(position);
+//  if (rotation) console.log('rotation', rotation);
+//  if (scale) console.log('scale', scale);
+  
+  if (object) {
+    let obj = objLoader.parse(JSON.parse(object));
+    if (position) obj.position.set(position.x, position.y, position.z);
+    alpacaObjects.add(obj);
+  }
+  if (parent.children.length) {
+    for (let i = 0; i < parent.children.length; i++) {
+      updateObjs(parent.children[i]);
+    }
+  }
+}
+
+changed();
+
+function changed() {
+  let target = document.getElementById('scene-tree');
+  let pattern = document.createElement('div');
+  pattern.setAttribute('id', 'scene-tree');
+  pattern.appendChild(makeElement(alpacaObjects));
+  morphdom(target, pattern);
+}
+
+function makeElement(obj) {
+  const { children, geometry, material, position, rotation, scale, type } = obj;
+  let parent = document.createElement('div');
+//  if (geometry) parent.dataset.geometry = JSON.stringify(geometry.toJSON());
+  if (position) parent.dataset.position = JSON.stringify(position);
+//  if (rotation) parent.dataset.rotation = JSON.stringify(rotation);
+//  if (scale) parent.dataset.scale = JSON.stringify(scale);
+//  if (type) parent.dataset.type = JSON.stringify(type);
+//  if (material) parent.dataset.material = JSON.stringify(material.toJSON());
+  parent.dataset.object = JSON.stringify(obj.toJSON());
+  if (children) {
+    for (let i in children) {
+      parent.appendChild(makeElement(children[i]));
+    }
+  }
+  return parent;
+}
+
+// Re-render when the user rotates the scene.
+// Used to prevent re-rendering too often (if the render function is
+// not in a requestAnimationFrame loop).
+function patchControls(controls) {
+	const oldUpdate = controls.update;
+	let id = null;
+	controls.update = () => {
+		const ret = oldUpdate.call(controls);
+		if (!id) id = requestAnimationFrame(() => {
+			render();
+			id = null;
+		});
+		return ret;
+	};
+};
+
+function makeWebSocket(url) {
+	return new Promise((resolve, reject) => {
+		const ws = new WebSocket(url);
+		ws.onopen = () => resolve(ws);
+		ws.onerror = () => reject(ws);
+		if (ws.readyState === WebSocket.OPEN) ws.onopen();
+	});
+};
+
+// wraps THREE.js TextureLoader in a promise.
+function loadTexture(url) {
+	return new Promise((resolve, reject) => {
+		loader.load(url, (texture) => {
+			resolve(texture);
+		}, undefined, (err) => {
+			reject(err);
+		});
+	});
+};
+
+// empty a tree of THREE.js objects to reclaim their memory.
+function clear(obj) {
+	while(obj.children.length) {
+		clear(obj.children[0]);
+		obj.remove(obj.children[0]);
+	}
+	if (obj.geometry) {
+		obj.geometry.dispose();
+		obj.geometry = null;
+	}
+	if (obj.material) {
+		if (obj.material.map) {
+			obj.material.map.dispose();
+			obj.material.map = undefined;
+		}
+		obj.material.dispose();
+		obj.material = null;
+	}
+};
+
+function rotatePlanes() {
+  for (let i in alpacaObjects.children) {
+    alpacaObjects.children[i].rotation.y -= 0.01;
+  }
+}
+
+async function render() {
+	if (display) {
+		reticle.update();
+		view.render();
+		camera.updateProjectionMatrix();
+	}
+	
+	controls.update();
+	
+  rotatePlanes();
+
+	renderer.clearDepth();
+	renderer.render(scenes.reticle, camera);
+	renderer.clearDepth();
+	renderer.render(scenes.main, camera);
+};
+
+async function step(timestamp) {
+  stats1.begin();
+  stats2.begin();
+  stats3.begin();
+  await render();
+  stats1.end();
+  stats2.end();
+  stats3.end();
+	requestAnimationFrame(step);
+};
+
+//if (display) {
+	requestAnimationFrame(step);
+//}
+
+if (display) {
+  getNamespaceObject(namespace, objString).then(d => {
+    let target = document.getElementById('scene-tree');
+    patch(target, d);
+    updateScene(document.getElementById('scene-tree').children[0]);
+  })
+}
+
+})();
+</script>

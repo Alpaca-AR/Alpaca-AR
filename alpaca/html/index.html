@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<script type="text/javascript">
+  if (screen.width <= 699) {
+    document.location = "m/";
+  }
+</script>
+
 <script type="text/javascript" src="js/object-store.js"></script>
 <script type="text/javascript" src="js/make-tree.js"></script>
 <script type="text/javascript" src="js/watch-tree.js"></script>
@@ -55,16 +61,16 @@
       let sock = new WebSocket(location.href.replace('http', 'ws') + 'store/' + namespace + '/' + objName);
       sock.onopen = (e) => console.log('Successful connection made to ' + e.target.url.replace('ws', 'http'));
       sock.onmessage = (e) => {
-        let serialized;
+        let deserialized;
         try {
-          serialized = JSON.parse(e.data);
+          deserialized = JSON.parse(e.data);
         }
         catch (err) {
           console.log('There was an error with parsing the object as JSON. Error: ', err);
           return;
         }
         let target = document.getElementById('target') || document.getElementsByClassName('pattern')[1];
-        patch(target, serialized);
+        patch(target, deserialized);
       };
     })
 

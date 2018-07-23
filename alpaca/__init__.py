@@ -26,9 +26,11 @@ async def index(request):
 
 routes.static('/js', str(Path(__file__).with_name('html') / 'js'))
 
+routes.static('/img', str(Path(__file__).with_name('html') / 'img'))
+
 @routes.get('/m/')
 async def mobile(request):
-	path = Path(__file__).with_name('html') / 'mobile.html'
+	path = Path(__file__).with_name('html') / 'mobile2.html'
 	
 	return Response(
 		content_type='text/html',
