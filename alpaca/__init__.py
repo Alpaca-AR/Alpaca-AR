@@ -28,15 +28,19 @@ routes.static('/js', str(Path(__file__).with_name('html') / 'js'))
 
 routes.static('/img', str(Path(__file__).with_name('html') / 'img'))
 
+routes.static('/d', str(Path(__file__).with_name('html') / 'd'))
+
+routes.static('/m', str(Path(__file__).with_name('html') / 'm'))
+"""
 @routes.get('/m/')
 async def mobile(request):
-	path = Path(__file__).with_name('html') / 'mobile2.html'
+	path = Path(__file__).with_name('html') / 'mobilev1.html'
 	
 	return Response(
 		content_type='text/html',
 		text=path.read_text(),
 	)
-
+"""
 
 alpaca = Application()
 
