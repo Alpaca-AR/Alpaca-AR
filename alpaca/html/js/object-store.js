@@ -49,6 +49,7 @@ function testingHelper(request) {
     let objName = document.getElementById("name").value;
     getNamespaceObject(namespace, objName).then(d => {
       let span = (document.getElementById("got").innerText = JSON.stringify(d));
+      console.log(d);
     });
   }
   if (request == "UNO") {

@@ -1,112 +1,113 @@
 <!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <style>
-:root {
-	--toolbar-height: 40px;
-}
+  :root {
+    --toolbar-height: 40px;
+  }
 
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-}
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-.toolbar {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	width: 100vw;
-	height: var(--toolbar-height);
-	display: flex;
-	flex-direction: row;
-	align-items: stretch;
-	justify-content: stretch;
-}
+  .toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: var(--toolbar-height);
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: stretch;
+  }
 
-.inputbar {
-  position: fixed;
-  bottom: var(--toolbar-height);
-  width: 100vw;
-}
+  .inputbar {
+    position: fixed;
+    bottom: var(--toolbar-height);
+    width: 100vw;
+  }
 
-.inputbar > div {
-  display: inline-block;
-}
+  .inputbar>div {
+    display: inline-block;
+  }
 
-.img-src {
-  position: fixed;
-  bottom: var(--toolbar-height);
-  width: 100vw;
-  height: var(--toolbar-height);
-  z-index: 1;
-}
+  .img-src {
+    position: fixed;
+    bottom: var(--toolbar-height);
+    width: 100vw;
+    height: var(--toolbar-height);
+    z-index: 1;
+  }
 
-.toolbar--button {
-	width: auto;
-	flex: 1;
-}
+  .toolbar--button {
+    width: auto;
+    flex: 1;
+  }
 
-#theLogger {
-	position: fixed;
-	top: 0;
-	left: 0;
-	pointer-events: none;
-	display: none;
-}
+  #theLogger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    display: none;
+  }
 
-.hide-ui .toolbar,
-.hide-ui #theLogger,
-.hide-ui canvas[width="80"] {
-	display: none !important;
-}
+  .hide-ui .toolbar,
+  .hide-ui #theLogger,
+  .hide-ui canvas[width="80"] {
+    display: none !important;
+  }
 </style>
+
 <body>
-<div id="app">
-  <div id="canvas"></div>
-  <div class="inputbar"></div>
-  <div class="toolbar">
-    <button class="toolbar--button js-toolbar-add">Add Object</button>
-    <button class="toolbar--button js-toolbar-remove">Remove Object</button>
-    <button class="toolbar--button js-toolbar-select">Select & Change Image</button>
-	</div>
-</div>
-<div id="theLogger"></div>
-<div id="scene-tree"></div>
-<script>
-(function() {
-	console.log = makeLogger(console.log, 'log');
-	console.warn = makeLogger(console.warn, 'warn');
-	console.error = makeLogger(console.error, 'error');
-	
-	function makeLogger(old, type) {
-		const logger = document.getElementById('theLogger');
-		
-		return function() {
-			const pre = document.createElement('pre');
-			const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
-			pre.appendChild(text);
-			logger.appendChild(pre);
-			old.apply(console, arguments);
-		};
-		
-	}
-})();
-</script>
-<script type="text/javascript" src="../js/object-store.js"></script>
-<script type="text/javascript" src="../js/make-tree.js"></script>
-<script type="text/javascript" src="../js/watch-tree.js"></script>
-<script type="text/javascript" src="../js/patch-tree.js"></script>
-<script type="text/javascript" src="https://unpkg.com/morphdom@2.3.3/dist/morphdom.js"></script>
-<script src="https://threejs.org/build/three.min.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
-<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
-<script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
-<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
-<script type="text/babel" data-presets="stage-0">
+  <div id="app">
+    <div id="canvas"></div>
+    <div class="inputbar"></div>
+    <div class="toolbar">
+      <button class="toolbar--button js-toolbar-add">Add Object</button>
+      <button class="toolbar--button js-toolbar-remove">Remove Object</button>
+      <button class="toolbar--button js-toolbar-select">Select & Change Image</button>
+    </div>
+  </div>
+  <div id="theLogger"></div>
+  <div id="scene-tree"></div>
+  <script>
+    (function () {
+      console.log = makeLogger(console.log, 'log');
+      console.warn = makeLogger(console.warn, 'warn');
+      console.error = makeLogger(console.error, 'error');
+
+      function makeLogger(old, type) {
+        const logger = document.getElementById('theLogger');
+
+        return function () {
+          const pre = document.createElement('pre');
+          const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
+          pre.appendChild(text);
+          logger.appendChild(pre);
+          old.apply(console, arguments);
+        };
+
+      }
+    })();
+  </script>
+  <script type="text/javascript" src="../js/object-store.js"></script>
+  <script type="text/javascript" src="../js/make-tree.js"></script>
+  <script type="text/javascript" src="../js/watch-tree.js"></script>
+  <script type="text/javascript" src="../js/patch-tree.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/morphdom@2.3.3/dist/morphdom.js"></script>
+  <script src="https://threejs.org/build/three.min.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
+  <script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
+  <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <script type="text/babel" data-presets="stage-0">
 (async () => {
 
 let objCount = 1;
@@ -356,10 +357,6 @@ watch(document.getElementById('scene-tree'), () => {
       });
   });
 
-const objLoader = do{
-  new THREE.ObjectLoader();
-}
-
 changed();
  
 function changed() {
@@ -371,13 +368,25 @@ function changed() {
 }
 
 function makeElement(obj) {
-  const { children, geometry, material, position, rotation, scale, type } = obj;
+  const { 
+    children,
+    geometry,
+    material,
+    position,
+    rotation,
+    scale
+    } = obj;
   let parent = document.createElement('div');
-  if (position) parent.dataset.position = JSON.stringify(position);
-  parent.dataset.object = JSON.stringify(obj.toJSON());
+  let d = parent.dataset;
+  if (geometry) d.geometry = JSON.stringify(geometry.toJSON());
+  if (material) d.material = JSON.stringify(material.toJSON());
+  if (position) d.position = JSON.stringify(position);
+  if (rotation) d.rotation = JSON.stringify(rotation);
+  if (scale) d.scale = JSON.stringify(scale);
+
   if (children) {
-    for (let i in children) {
-      parent.appendChild(makeElement(children[i]));
+    for (let child in children) {
+      parent.appendChild(makeElement(children[child]));
     }
   }
   return parent;
