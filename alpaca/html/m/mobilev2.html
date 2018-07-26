@@ -64,8 +64,11 @@
 <script type="text/babel" data-presets="stage-0">
 (async () => {
 
-let objCount = 1, objString = '3cdb2963-0957-4b0b-9c19-3fd1be80c71b'; //change objString for testing
+let objCount = 1;
+let objString; //change objString for testing
 
+let namespace = 'alpaca';
+await getNamespaceObject(namespace, 'index.json').then(d => objString = d.url);
 // three.ar.js returns falsey if this is not an AR device.
 // Can be used to detect if this is a desktop web browser.
 const display = do {
@@ -212,14 +215,6 @@ const alpacaObjects = do {
 	group;
 };
 
-
-const img1 = '../img/256x256.png',
-  img2 = '../img/512x512.png';
-
-texture1 = loader.load(img1);
-texture2 = loader.load(img2);
-
-let namespace = 'alpaca';
 let tree = startTree(document.getElementById('scene-tree'));
 
 let sock = new WebSocket(location.href.replace('http', 'ws').replace('m/mobilev2.html', '') + 'store/' + namespace + '/' + objString);
@@ -238,7 +233,6 @@ sock.onmessage = (e) => {
   updateScene(document.getElementById('scene-tree').children[0]);
 };
 
-
 function updateScene(parent) {
   const { position, rotation, scale} = parent.dataset;
   clear(alpacaObjects);
@@ -250,13 +244,14 @@ function updateScene(parent) {
   console.log(alpacaObjects)
 }
 
-let matL = new THREE.MaterialLoader();
 let geoL = new THREE.JSONLoader();
 
 function updateObjs(parent) {
-  let { 
+  let {
     children,
+    color,
     geometry,
+    img,
     material,
     position,
     rotation,
@@ -267,7 +262,12 @@ function updateObjs(parent) {
     geometry = JSON.parse(geometry);
     geo = new THREE.PlaneGeometry(geometry.width, geometry.height);
   }
-  if (material) mat = matL.parse(JSON.parse(material));
+  
+  if (material && img && color) {
+    let texture = loader.load(img);
+    color = new THREE.Color(...Object.values(JSON.parse(color)));
+    mat = new THREE.MeshBasicMaterial({ map: texture, color: color, side: THREE.DoubleSide });
+  }
   
   let mesh = (geo && mat) ? new THREE.Mesh(geo, mat) : new THREE.Group();
   
@@ -323,6 +323,7 @@ function clear(obj) {
 		obj.material = null;
 	}
 };
+
 
 function rotatePlanes() {
   for (let i in alpacaObjects.children) {

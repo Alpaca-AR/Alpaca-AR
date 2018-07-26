@@ -69,6 +69,7 @@
       <button class="toolbar--button js-toolbar-add">Add Object</button>
       <button class="toolbar--button js-toolbar-remove">Remove Object</button>
       <button class="toolbar--button js-toolbar-select">Select & Change Image</button>
+      <button class="toolbar--button js-toolbar-change">Update Store</button>
     </div>
   </div>
   <div id="theLogger"></div>
@@ -108,6 +109,7 @@
   <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
   <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
   <script type="text/babel" data-presets="stage-0">
+  var alpacaObjects, changed;
 (async () => {
 
 let objCount = 1;
@@ -232,12 +234,19 @@ const p3 = do {
 	panel;
 };
 
-const alpacaObjects = do {
+alpacaObjects = do {
 	const group = new THREE.Group();
 	scenes.main.add(group);
 	group;
 };
 
+changed = function () {
+  let target = document.getElementById('scene-tree');
+  let pattern = document.createElement('div');
+  pattern.setAttribute('id', 'scene-tree');
+  pattern.appendChild(makeElement(alpacaObjects));
+  morphdom(target, pattern);
+}
 
 const img1 = '../img/256x256.png',
   img2 = '../img/512x512.png';
@@ -270,6 +279,15 @@ document
     'click', 
     () => {
       changeCheckedObject(findCheckedObject());
+    }
+  )
+
+document
+  .getElementsByClassName('js-toolbar-change')[0]
+  .addEventListener(
+    'click', 
+    () => {
+      changed();
     }
   )
 
@@ -348,7 +366,9 @@ let objName;
 makeNamespaceObject(namespace, tree)
     .then(d => {
       objName = d.data.url.split('/')[3];
+      updateNamespaceObject(namespace, 'index.json', {url: objName})
     })
+
 watch(document.getElementById('scene-tree'), () => {
     tree = startTree(document.getElementById('scene-tree'))
     updateNamespaceObject(namespace, objName, tree)
@@ -358,14 +378,6 @@ watch(document.getElementById('scene-tree'), () => {
   });
 
 changed();
- 
-function changed() {
-  let target = document.getElementById('scene-tree');
-  let pattern = document.createElement('div');
-  pattern.setAttribute('id', 'scene-tree');
-  pattern.appendChild(makeElement(alpacaObjects));
-  morphdom(target, pattern);
-}
 
 function makeElement(obj) {
   const { 
@@ -380,6 +392,8 @@ function makeElement(obj) {
   let d = parent.dataset;
   if (geometry) d.geometry = JSON.stringify(geometry.toJSON());
   if (material) d.material = JSON.stringify(material.toJSON());
+  if (material && material.color) d.color = JSON.stringify({r: material.color.r, g: material.color.g, b: material.color.b});
+  if (material && material.map && material.map.image) d.img = material.map.image.currentSrc;
   if (position) d.position = JSON.stringify(position);
   if (rotation) d.rotation = JSON.stringify(rotation);
   if (scale) d.scale = JSON.stringify(scale);
