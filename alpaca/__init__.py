@@ -35,6 +35,7 @@ routes.static('/m', str(Path(__file__).with_name('html') / 'm'))
 
 alpaca = Application(
 	middlewares=[cors_factory],
+	client_max_size=10*1024*1024,
 )
 
 

@@ -23,7 +23,7 @@
 </style>
 <body>
 <div id="app">
-  <div id="canvas"></div>
+	<div id="canvas"></div>
 </div>
 <div id="theLogger"></div>
 <div id="scene-tree"></div>
@@ -51,7 +51,6 @@
 <script type="text/javascript" src="../js/make-tree.js"></script>
 <script type="text/javascript" src="../js/watch-tree.js"></script>
 <script type="text/javascript" src="../js/patch-tree.js"></script>
-<script type="text/javascript" src="https://unpkg.com/morphdom@2.3.3/dist/morphdom.js"></script>
 <script src="https://threejs.org/build/three.min.js"></script>
 <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
 <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
@@ -64,24 +63,26 @@
 <script type="text/babel" data-presets="stage-0">
 (async () => {
 
-let objCount = 1, objString = '4563625f-0c48-4d2a-ba38-8c257a626565'; //change objString for testing
+let objCount = 1, objString = 'index.json'; //change objString for testing
 
 // three.ar.js returns falsey if this is not an AR device.
 // Can be used to detect if this is a desktop web browser.
 const display = do {
-  await THREE.ARUtils.getARDisplay();
+	await THREE.ARUtils.getARDisplay();
 };
-
-if (!display) return;
 
 const loader = do {
 	new THREE.TextureLoader();
 };
 
+const objectLoader = do{
+	new THREE.ObjectLoader();
+}
+
 const renderer = do {
 	const renderer = new THREE.WebGLRenderer({ alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setPixelRatio(window.devicePixelRatio);
+	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.autoClear = false;
 	renderer;
 };
@@ -96,6 +97,7 @@ const scenes = do {
 	const main = new THREE.Scene(),
 	      reticle = new THREE.Scene(),
 	      scenes = { main, reticle };
+	window.scenes = scenes;
 	scenes;
 };
 
@@ -111,35 +113,59 @@ const center = do {
 	};
 	
 	const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(1, 0, 0)
+	mesh.position.set(1, 0, 0)
 	mesh;
 };
 
 const view = do {
-	new THREE.ARView(display, renderer);
+	if (display) {
+		new THREE.ARView(display, renderer);
+	} else {
+		null;
+	}
 };
 
 const camera = do {
-	const fov = 60,
-	      aspect = window.innerWidth / window.innerHeight;
-	const zNear = display.depthNear,
-	      zFar = display.depthFar,
-	      camera = new THREE.ARPerspectiveCamera(display, fov, aspect, zNear, zFar);
-	camera;
+        const fov = 60,
+              aspect = window.innerWidth / window.innerHeight;
+        if (display) {
+                const zNear = display.depthNear,
+                      zFar = display.depthFar,
+                      camera = new THREE.ARPerspectiveCamera(display, fov, aspect, zNear, zFar);
+                camera;
+        } else {
+                const zNear = 0.1,
+                      zFar = 1000,
+                      camera = new THREE.PerspectiveCamera(fov, aspect, zNear, zFar);
+                camera.position.set(0, 0.1, 0.1);
+                camera;
+        }
 };
 
 const reticle = do {
-	const inRadius = 0.03,
-	      outRadius = 0.04,
-	      color = 0xff0077,
-	      easing = 0.25,
-	      reticle = new THREE.ARReticle(display, inRadius, outRadius, color, easing);
-	scenes.reticle.add(reticle);
-	reticle;
+        if (display) {
+                const inRadius = 0.03,
+                      outRadius = 0.04,
+                      color = 0xff0077,
+                      easing = 0.25,
+                      reticle = new THREE.ARReticle(display, inRadius, outRadius, color, easing);
+                scenes.reticle.add(reticle);
+                reticle;
+        } else {
+                null;
+        }
 };
 
+
 const controls = do {
-	new THREE.VRControls(camera);
+        if (display) {
+                const controls = new THREE.VRControls(camera);
+                controls;
+        } else {
+                const controls = new THREE.OrbitControls(camera);
+                patchControls(controls);
+                controls;
+        }
 };
 
 var stats1, stats2, stats3;
@@ -156,8 +182,8 @@ const p1 = do {
 		stats.addPanel(panel);
 		stats.showPanel(0);
 		stats.dom.style.top = `${0 * 48}px`;
-    document.body.appendChild(stats.dom);
-    stats1 = stats;
+		document.body.appendChild(stats.dom);
+		stats1 = stats;
 		stats;
 	};
 	
@@ -177,8 +203,8 @@ const p2 = do {
 		stats.addPanel(panel);
 		stats.showPanel(2);
 		stats.dom.style.top = `${1 * 48}px`;
-    document.body.appendChild(stats.dom);
-    stats2 = stats;
+		document.body.appendChild(stats.dom);
+		stats2 = stats;
 		stats;
 	};
 	
@@ -198,8 +224,8 @@ const p3 = do {
 		stats.addPanel(panel);
 		stats.showPanel(1);
 		stats.dom.style.top = `${2 * 48}px`;
-    document.body.appendChild(stats.dom);
-    stats3 = stats;
+		document.body.appendChild(stats.dom);
+		stats3 = stats;
 		stats;
 	};
 	
@@ -212,63 +238,43 @@ const alpacaObjects = do {
 	group;
 };
 
+const initial = await fetch('/store/alpaca/index.json').then((res) => res.json());
+processScene(initial);
 
-const img1 = '../img/256x256.png',
-  img2 = '../img/512x512.png';
-
-texture1 = loader.load(img1);
-texture2 = loader.load(img2);
-
-let namespace = 'alpaca';
-let tree = startTree(document.getElementById('scene-tree'));
-
-let sock = new WebSocket(location.href.replace('http', 'ws').replace('m/mobilev1.html', '') + 'store/' + namespace + '/' + objString);
-sock.onopen = (e) => console.log('Successful connection made to ' + e.target.url.replace('ws', 'http'));
-sock.onmessage = (e) => {
-  let deserialized;
-  try {
-    deserialized = JSON.parse(e.data);
-  }
-  catch (err) {
-    console.log('There was an error with parsing the object as JSON. Error: ', err);
-    return;
-  }
-  let target = document.getElementById('scene-tree');
-  patch(target, deserialized);
-  updateScene(document.getElementById('scene-tree').children[0]);
+const ws = await makeWebSocket(`ws://${window.location.host}/store/alpaca/index.json`);
+{
+	ws.onmessage = (e) => {
+		const json = JSON.parse(e.data);
+		processScene(json);
+	};
 };
 
+function processScene(json) {
+	console.log('process', json);
+	objectLoader.parse(json, updateScene);
+};
 
-function updateScene(parent) {
-  const { position, rotation, scale} = parent.dataset;
-  clear(alpacaObjects);
-  if (parent.children.length) {
-    for (let i = 0; i < parent.children.length; i++) {
-      updateObjs(parent.children[i]);
-    }
-  }
-}
+function updateScene(object) {
+	console.log('update', object);
+	clear(alpacaObjects);
+	alpacaObjects.add(object);
+};
 
-const objLoader = do{
-  new THREE.ObjectLoader();
-}
-
-function updateObjs(parent) {
-  let { object, position } = parent.dataset;
-
-  if (position) position = JSON.parse(position);
-  
-  if (object) {
-    let obj = objLoader.parse(JSON.parse(object));
-    if (position) obj.position.set(position.x, position.y, position.z);
-    alpacaObjects.add(obj);
-  }
-  if (parent.children.length) {
-    for (let i = 0; i < parent.children.length; i++) {
-      updateObjs(parent.children[i]);
-    }
-  }
-}
+// Re-render when the user rotates the scene.
+// Used to prevent re-rendering too often (if the render function is
+// not in a requestAnimationFrame loop).
+function patchControls(controls) {
+        const oldUpdate = controls.update;
+        let id = null;
+        controls.update = () => {
+                const ret = oldUpdate.call(controls);
+                if (!id) id = requestAnimationFrame(() => {
+                        render();
+                        id = null;
+                });
+                return ret;
+        };
+};
 
 function makeWebSocket(url) {
 	return new Promise((resolve, reject) => {
@@ -311,44 +317,42 @@ function clear(obj) {
 };
 
 function rotatePlanes() {
-  for (let i in alpacaObjects.children) {
-    alpacaObjects.children[i].rotation.y -= 0.01;
-  }
+	for (let i in alpacaObjects.children) {
+		alpacaObjects.children[i].rotation.y -= 0.01;
+	}
 }
 
 async function render() {
-	reticle.update();
-	view.render();
-	camera.updateProjectionMatrix();
+	stats1.begin();
+	stats2.begin();
+	stats3.begin();
 	
-	controls.update();
+	if (display) {
+		reticle.update();
+		view.render();
+		camera.updateProjectionMatrix();
 	
-  rotatePlanes();
+		controls.update();
+	}
+	
+	rotatePlanes();
 
 	renderer.clearDepth();
 	renderer.render(scenes.reticle, camera);
 	renderer.clearDepth();
 	renderer.render(scenes.main, camera);
+	
+	stats3.end();
+	stats2.end();
+	stats1.end();
 };
 
-async function step(timestamp) {
-  stats1.begin();
-  stats2.begin();
-  stats3.begin();
-  await render();
-  stats1.end();
-  stats2.end();
-  stats3.end();
+function step(timestamp) {
+	render();
 	requestAnimationFrame(step);
 };
 
 requestAnimationFrame(step);
-
-getNamespaceObject(namespace, objString).then(d => {
-  let target = document.getElementById('scene-tree');
-  patch(target, d);
-  updateScene(document.getElementById('scene-tree').children[0]);
-})
 
 })();
 </script>

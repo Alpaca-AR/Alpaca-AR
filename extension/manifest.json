@@ -3,9 +3,14 @@
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "Mixed Reality",
+  "web_accessible_resources": [
+    "nps.js"
+  ],
   "content_scripts": [
     {
-      "js": ["inject-nps.js"],
+      "js": [
+        "inject-nps.js"
+      ],
       "matches": [
         "https://science.nature.nps.gov/parks/grsm/species/"
       ]
