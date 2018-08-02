@@ -316,12 +316,6 @@ function clear(obj) {
 	}
 };
 
-function rotatePlanes() {
-	for (let i in alpacaObjects.children) {
-		alpacaObjects.children[i].rotation.y -= 0.01;
-	}
-}
-
 async function render() {
 	stats1.begin();
 	stats2.begin();
@@ -334,8 +328,6 @@ async function render() {
 	
 		controls.update();
 	}
-	
-	rotatePlanes();
 
 	renderer.clearDepth();
 	renderer.render(scenes.reticle, camera);

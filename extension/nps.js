@@ -1,162 +1,230 @@
-document.body.appendChild(document.createElement('script')).src = 
-	'https://threejs.org/build/three.min.js';
+document.body.appendChild(document.createElement("script")).src =
+  "https://threejs.org/build/three.min.js";
 
-const watchDefaultConfig = { attributes: true, childList: true, subtree: true };
-function watch(element, callback, config=watchDefaultConfig, delay=1000) {
-	const func = callback.bind(null, element),
-	      wait = delay,
-	      immediate = true,
-	      debounced = debounce(func, wait, immediate),
-	      observer = new MutationObserver(debounced);
-	observer.observe(element, config);
+const url = true ? "http://accona.eecs.utk.edu:8599" : "http://localhost:8080",
+  mapSelector =
+    ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container:last-child",
+  speciesSelector =
+    ".npmap-map .leaflet-pane > .leaflet-tile-pane > .leaflet-layer:nth-child(n+2)",
+  watchDefaultConfig = { attributes: true, childList: true, subtree: true };
+
+function watch(element, callback, config = watchDefaultConfig, delay = 1000) {
+  const func = callback.bind(null, element),
+    wait = delay,
+    immediate = false,
+    debounced = debounce(func, wait, immediate),
+    observer = new MutationObserver(debounced);
+  observer.observe(element, config);
+  return observer;
 }
 
 function debounce(func, wait, immediate) {
-	let timeout;
-	return function() {
-		let context = this,
-		    args = arguments;
-		clearTimeout(timeout);
-		if (immediate && !timeout) func.apply(context, args);
-		timeout = setTimeout(function() {
-			timeout = null;
-			if (!immediate) func.apply(context, args);
-		}, wait);
-	};
+  let timeout;
+  return function() {
+    let context = this,
+      args = arguments;
+    clearTimeout(timeout);
+    if (immediate && !timeout) func.apply(context, args);
+    timeout = setTimeout(function() {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    }, wait);
+  };
 }
 
-const id = setInterval(() => {
-	if (!window.THREE) {
-		return;
-	}
+document.onreadystatechange = () => {
+  if (document.readyState === "complete") initNPS();
+};
 
-	const textureLoader = new THREE.TextureLoader();
-	const loadTexture = (src) => {
-		let _resolve, _reject;
-		const promise = new Promise((resolve, reject) => {
-			_resolve = resolve;
-			_reject = reject;
-		});
-		const texture = textureLoader.load(src, (...args) => {
-			if (_resolve) _resolve(...args);
-		}, undefined, (...args) => {
-			if (_reject) _reject(...args);
-		});
-		
-		return { promise, texture };
-	};
-	
-	clearInterval(id);
-	
-	main();
-}, 100);
+let parentGroup, loadTexture;
+
+function initNPS() {
+  const id = setInterval(() => {
+    if (!window.THREE) return;
+
+    const textureLoader = new THREE.TextureLoader();
+    loadTexture = src => {
+      let _resolve, _reject;
+      const promise = new Promise((resolve, reject) => {
+        _resolve = resolve;
+        _reject = reject;
+      });
+      const texture = textureLoader.load(
+        src,
+        (...args) => {
+          if (_resolve) _resolve(...args);
+        },
+        undefined,
+        (...args) => {
+          if (_reject) _reject(...args);
+        }
+      );
+
+      return { promise, texture };
+    };
+
+    clearInterval(id);
+
+    parentGroup = new THREE.Group();
+    main();
+  }, 100);
+}
+
+async function updateNamespaceObject() {
+  return fetch(url + "/store/alpaca/index.json", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(parentGroup.toJSON())
+  })
+    .then(response => response.json())
+    .catch(err => console.error("Fetch Error =\n", err));
+}
 
 function main() {
-	watch(document.querySelector('.npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container'), async (element) => {
-		const images = Array.from(element.querySelectorAll('img.leaflet-tile'));
-		const promises = [];
-		const group = new THREE.Group();
-		for (let image of images) {
-			const transform = image.style.transform,
-			      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
-			      x = (-256 + +match[1]) / 256,
-			      y = (-256 + +match[2]) / -256,
-			      z = +match[3] / 256;
-			console.log({ x, y, z });
-			
-			const { promise, texture } = loadTexture(image.src);
-			promises.push(promise);
+  let watching = false,
+    species = null;
+  (function setSpeciesWatcher() {
+    let container = document.querySelector(speciesSelector);
+    if (container && !watching) {
+      species = watch(
+        document.querySelector(".npmap-map .leaflet-tile-pane"),
+        speciesWatcher
+      );
+      watching = true;
+    } else if (!container && watching) {
+      if (species !== null) {
+        species.disconnect();
+        species = null;
+      }
+      watching = false;
+      for (let i = 0; i < parentGroup.children.length; i++) {
+        if (parentGroup.children[i].name === "species")
+          parentGroup.remove(parentGroup.children[i]);
+      }
+      updateNamespaceObject();
+    }
+    setTimeout(setSpeciesWatcher, 250);
+  })();
 
-			const material = new THREE.MeshBasicMaterial({
-				map: texture,
-				side: THREE.DoubleSide,
-			});
-			
-			const scale = 1,
-			      geometry = new THREE.PlaneBufferGeometry(scale, scale);
-			
-			const mesh = new THREE.Mesh(geometry, material);
-			
-			mesh.position.set(x, y, z);
-			mesh.updateMatrixWorld();
-			
-			group.add(mesh);
-		}
-		
-		group.scale.set(0.1, 0.1, 0.1);
-		group.updateMatrixWorld();
-		
-		await Promise.all(promises);
-		
-		await fetch('http://localhost:8080/store/alpaca/index.json', {
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(group.toJSON()),
-		}).then((res) => {
-			return res.json();
-		}).then((json) => {
-			console.log(json);
-		});
-	});
-}, 100);
+  watch(document.querySelector(".npmap-map .leaflet-tile-pane"), mapWatcher);
 
-/*
- > img.leaflet-tile', (images) => {
-	const objects = images.map((image) => {
-		const transform = image.style.transform,
-		      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
-		      x = (-256 + +match[1]) / 256,
-		      y = (-256 + +match[2]) / -256,
-		      z = +match[3] / 256;
+  let mapLayer = document.querySelector(mapSelector),
+    speciesLayer = document.querySelector(speciesSelector);
 
-		return { image: image.src, x, y, z };
-	});
+  if (mapLayer) mapWatcher(mapLayer);
+  if (speciesLayer) speciesWatcher();
+}
 
-	return { objects, rotationX: -90, scale: 256/800 };
-});
+async function mapWatcher(element) {
+  element = document.querySelector(mapSelector);
+  if (!element) return;
+  const images = Array.from(element.querySelectorAll("img.leaflet-tile"));
+  if (images.length == 0)
+      return setTimeout(() => {
+        let el = document.querySelector(mapSelector);
+        if (el) mapWatcher(el);
+      }, 500);
+  const promises = [];
+  let mapGroup = new THREE.Group();
+  for (let image of images) {
+    if (image.src.startsWith("data")) continue;
+    const transform = image.style.transform,
+      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
+      x = (-256 + +match[1]) / 256,
+      y = (-256 + +match[2]) / -256,
+      z = +match[3] / 256;
 
-driver.watch('.npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(2) > .leaflet-tile-container > img.leaflet-tile', (images) => {
-	const objects = images.map((image) => {
-		const transform = image.style.transform,
-		      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
-		      x = (-256 + +match[1]) / 256,
-		      y = (-256 + +match[2]) / -256,
-		      z = +match[3] / 256;
-		return { image: image.src, x, y, z, useGeometryShader: true };
-	});
+    const { promise, texture } = loadTexture(image.src);
+    promises.push(promise);
 
-	return { objects, rotationX: -90, scale: 256/800 };
-});
-*/
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide
+    });
 
-/*
-const smallCanvas = document.createElement('canvas');
-//document.body.appendChild(smallCanvas);
-smallCanvas.width = smallCanvas.height = 256;
-const ctx = smallCanvas.getContext('2d');
+    const scale = 1,
+      geometry = new THREE.PlaneBufferGeometry(scale, scale);
 
-driver.watch('#map canvas.leaflet-heatmap-layer', (layers) => {
-	const objects = layers.map((layer) => {
-		const transform = layer.style.transform,
-		      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
-		      x = +match[1] / 800,
-		      y = +match[2] / 800,
-		      z = .1;
+    const mesh = new THREE.Mesh(geometry, material);
 
-		ctx.resetTransform();
-		ctx.clearRect(0, 0, +smallCanvas.width, +smallCanvas.height);
-		ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-		ctx.fillRect(0, 0, +smallCanvas.width, +smallCanvas.height);
-		ctx.setTransform(+smallCanvas.width / +layer.width, 0, 0, +smallCanvas.height / +layer.height, 0, 0);
-		ctx.drawImage(layer, 0, 0);
+    mesh.position.set(x, y, z);
+    mesh.updateMatrixWorld();
 
-		const image = smallCanvas.toDataURL('image/png');
+    mapGroup.add(mesh);
+  }
 
-		return { image, x, y, z, useGeometryShader: true };
-	});
+  mapGroup.scale.set(0.1, 0.1, 0.1);
+  mapGroup.updateMatrixWorld();
 
-	return { objects, rotationX: -90, scale: 1 };
-});
-*/
+  await Promise.all(promises).catch(e => console.log(e));
+
+  for (let i = 0; i < parentGroup.children.length; i++) {
+    if (parentGroup.children[i].name === "map")
+      parentGroup.remove(parentGroup.children[i]);
+  }
+
+  mapGroup.name = "map";
+  parentGroup.add(mapGroup);
+
+  speciesWatcher();
+}
+
+async function speciesWatcher() {
+  let elements = document.querySelectorAll(speciesSelector);
+  if (!elements) return;
+  for (let i = 0; i < parentGroup.children.length; i++) {
+    if (parentGroup.children[i].name === "species")
+      parentGroup.remove(parentGroup.children[i]);
+  }
+  for (let element of elements) {
+    const images = Array.from(element.querySelectorAll("img.leaflet-tile"));
+    if (images.length == 0)
+      return setTimeout(() => {
+        let el = document.querySelector(speciesSelector);
+        if (el) speciesWatcher(el);
+      }, 500);
+    const promises = [];
+    let speciesGroup = new THREE.Group();
+    for (let image of images) {
+      if (image.src.startsWith("data")) continue;
+      const transform = image.style.transform,
+        match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(
+          transform
+        ),
+        x = (-256 + +match[1]) / 256,
+        y = (-256 + +match[2]) / -256,
+        z = +match[3] / 256;
+
+      const { promise, texture } = loadTexture(image.src);
+      promises.push(promise);
+
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+        opacity: 0.5,
+        transparent: true
+      });
+
+      const scale = 1,
+        geometry = new THREE.PlaneBufferGeometry(scale, scale);
+
+      const mesh = new THREE.Mesh(geometry, material);
+
+      mesh.position.set(x, y, z);
+      mesh.updateMatrixWorld();
+
+      speciesGroup.add(mesh);
+    }
+
+    speciesGroup.scale.set(0.1, 0.1, 0.1);
+    speciesGroup.updateMatrixWorld();
+
+    await Promise.all(promises).catch(e => console.log(e));
+
+    speciesGroup.name = "species";
+    parentGroup.add(speciesGroup);
+  }
+  updateNamespaceObject();
+}
