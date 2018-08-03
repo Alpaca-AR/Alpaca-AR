@@ -122,12 +122,17 @@ async function mapWatcher(element) {
   if (!element) return;
   const images = Array.from(element.querySelectorAll("img.leaflet-tile"));
   if (images.length == 0)
-      return setTimeout(() => {
-        let el = document.querySelector(mapSelector);
-        if (el) mapWatcher(el);
-      }, 500);
+    return setTimeout(() => {
+      let el = document.querySelector(mapSelector);
+      if (el) mapWatcher(el);
+    }, 500);
   const promises = [];
   let mapGroup = new THREE.Group();
+  let minX = 100,
+    minY = 100,
+    maxX = -100,
+    maxY = -100,
+    tiles = {};
   for (let image of images) {
     if (image.src.startsWith("data")) continue;
     const transform = image.style.transform,
@@ -135,6 +140,12 @@ async function mapWatcher(element) {
       x = (-256 + +match[1]) / 256,
       y = (-256 + +match[2]) / -256,
       z = +match[3] / 256;
+
+    tiles[x + ", " + y] = true;
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
 
     const { promise, texture } = loadTexture(image.src);
     promises.push(promise);
@@ -153,6 +164,43 @@ async function mapWatcher(element) {
     mesh.updateMatrixWorld();
 
     mapGroup.add(mesh);
+  }
+
+  const { promise, texture } = loadTexture(
+    "http://accona.eecs.utk.edu:8599/img/512x512.png"
+  );
+  promises.push(promise);
+
+  const width = maxX - minX + 3,
+    height = maxY - minY + 3,
+    tileCount = width * height;
+  let currentX, currentY;
+  for (let i = 0; i < tileCount; i++) {
+    currentX = minX - 1 + (i % width);
+    currentY = maxY + 1 - Math.floor(i / width);
+    if (tiles[currentX + ", " + currentY] !== true) {
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x191919,
+        side: THREE.DoubleSide
+      });
+
+      const scale = 1,
+        geometry = new THREE.PlaneBufferGeometry(scale, scale);
+
+      let tile = new THREE.Mesh(geometry, material);
+      tile.position.set(currentX, currentY, 0);
+      if (
+        currentX >= minX &&
+        currentX <= maxX &&
+        currentY >= minY &&
+        currentY <= maxY
+      ) {
+        tile.material.map = texture;
+        tile.material.color.setRGB(1, 1, 1);
+      }
+      tile.updateMatrixWorld();
+      mapGroup.add(tile);
+    }
   }
 
   mapGroup.scale.set(0.1, 0.1, 0.1);
