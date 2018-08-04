@@ -101,30 +101,6 @@ const scenes = do {
 	scenes;
 };
 
-const center = do {
-	const geometry = do {
-		const size = 0.1;
-		new THREE.BoxBufferGeometry(size, size, size);
-	};
-	
-	const material = do {
-		const color = 0xff00ff;
-		new THREE.MeshBasicMaterial({ color })
-	};
-	
-	const mesh = new THREE.Mesh(geometry, material);
-	mesh.position.set(1, 0, 0)
-	mesh;
-};
-
-const view = do {
-	if (display) {
-		new THREE.ARView(display, renderer);
-	} else {
-		null;
-	}
-};
-
 const camera = do {
         const fov = 60,
               aspect = window.innerWidth / window.innerHeight;
