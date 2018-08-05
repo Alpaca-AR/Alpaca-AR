@@ -11,7 +11,7 @@ let snowScene = new THREE.Scene(),
   trackGroup = new THREE.Group(),
   racerGroup = new THREE.Group(),
   axesHelper = new THREE.AxesHelper();
-snowScene.add(trackGroup, racerGroup, axesHelper);
+window.scene.add(trackGroup, racerGroup, axesHelper);
 
 let size = 0.5;
 
@@ -116,7 +116,7 @@ async function updateScene() {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(snowScene.toJSON())
+    body: JSON.stringify(window.scene.toJSON())
   })
     .then(response => response.json())
     .catch(err => console.error("Fetch Error =\n", err));
