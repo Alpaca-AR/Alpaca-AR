@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+#theLogger {
+	position: fixed;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	display: none;
+}
+
+.hide-ui .toolbar,
+.hide-ui #theLogger,
+.hide-ui canvas[width="80"] {
+	display: none !important;
+}
+</style>
+<body>
+<div id="app">
+	<div id="canvas"></div>
+</div>
+<div id="theLogger"></div>
+<div id="scene-tree"></div>
+<script>
+(function() {
+	console.log = makeLogger(console.log, 'log');
+	console.warn = makeLogger(console.warn, 'warn');
+	console.error = makeLogger(console.error, 'error');
+	
+	function makeLogger(old, type) {
+		const logger = document.getElementById('theLogger');
+		
+		return function() {
+			const pre = document.createElement('pre');
+			const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
+			pre.appendChild(text);
+			logger.appendChild(pre);
+			old.apply(console, arguments);
+		};
+		
+	}
+})();
+</script>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
+<script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+<script type="text/babel" data-presets="stage-0">
+(async () => {
+
+const renderer = do {
+	const renderer = new THREE.WebGLRenderer({ alpha: true });
+	renderer.setPixelRatio(window.devicePixelRatio);
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.autoClear = false;
+	renderer;
+};
+
+const canvas = do {
+	const canvas = renderer.domElement;
+	document.getElementById('canvas').appendChild(canvas);
+	canvas;
+};
+
+const scene = do {
+	const scene = new THREE.Scene();
+	window.scene = scene;
+	scene;
+};
+
+const camera = do {
+  const fov = 60,
+    aspect = window.innerWidth / window.innerHeight;
+
+  const zNear = 0.1,
+    zFar = 1000,
+    camera = new THREE.PerspectiveCamera(fov, aspect, zNear, zFar);
+  camera.position.set(0, 0.1, 0.1);
+  camera;
+};
+
+const controls = do {
+  const controls = new THREE.OrbitControls(camera);
+  patchControls(controls);
+  controls;
+};
+
+var stats1, stats2, stats3;
+const p1 = do {
+	const panel = do {
+		const label = 'p1',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(0);
+		stats.dom.style.top = `${0 * 48}px`;
+		document.body.appendChild(stats.dom);
+		stats1 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+const p2 = do {
+	const panel = do {
+		const label = 'p2',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(2);
+		stats.dom.style.top = `${1 * 48}px`;
+		document.body.appendChild(stats.dom);
+		stats2 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+const p3 = do {
+	const panel = do {
+		const label = 'p3',
+		      fg = '#ccc',
+		      bg = '#222';
+		new Stats.Panel(label, fg, bg);
+	};
+	
+	const stats = do {
+		const stats = new Stats();
+		stats.addPanel(panel);
+		stats.showPanel(1);
+		stats.dom.style.top = `${2 * 48}px`;
+		document.body.appendChild(stats.dom);
+		stats3 = stats;
+		stats;
+	};
+	
+	panel;
+};
+
+// Re-render when the user rotates the scene.
+// Used to prevent re-rendering too often (if the render function is
+// not in a requestAnimationFrame loop).
+function patchControls(controls) {
+        const oldUpdate = controls.update;
+        let id = null;
+        controls.update = () => {
+                const ret = oldUpdate.call(controls);
+                if (!id) id = requestAnimationFrame(() => {
+                        render();
+                        id = null;
+                });
+                return ret;
+        };
+};
+
+async function render() {
+	stats1.begin();
+	stats2.begin();
+	stats3.begin();
+
+	renderer.clearDepth();
+	renderer.render(scene, camera);
+	
+	stats3.end();
+	stats2.end();
+	stats1.end();
+};
+
+function step(timestamp) {
+	render();
+	requestAnimationFrame(step);
+};
+
+requestAnimationFrame(step);
+
+document.body.appendChild(document.createElement('script')).src = "http://accona.eecs.utk.edu:8599/js/sledding.js";
+
+})();
+</script>

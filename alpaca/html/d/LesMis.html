@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style>
+  body {
+    text-align: center;
+    font-family: Sans-serif;
+    margin: 0;
+  }
+
+  .dimensions-selector,
+  .graph-data {
+    position: absolute;
+    top: 0;
+    padding: 5px;
+    color: slategrey;
+  }
+
+  .dimensions-selector {
+    left: 0;
+  }
+
+  .graph-data {
+    right: 0;
+  }
+
+  .toggle-data-btn {
+    cursor: pointer;
+    opacity: 0.85;
+  }
+
+  .toggle-data-btn:hover {
+    opacity: 1;
+  }
+
+  #graph-data-description {
+    font-size: 12px;
+    color: slategrey;
+  }
+</style>
+
+<head>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/qwest/4.4.5/qwest.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.4/papaparse.min.js"></script>
+  <script src="//unpkg.com/3d-force-graph@1"></script>
+</head>
+
+<body>
+  <div id="3d-graph"></div>
+
+  <div class="dimensions-selector">
+    Dimensions:
+    <input type="radio" name="num-dimensions" onChange="toggleDimensions(1);"> 1D
+    <input type="radio" name="num-dimensions" onChange="toggleDimensions(2);"> 2D
+    <input type="radio" name="num-dimensions" onChange="toggleDimensions(3);" checked> 3D
+  </div>
+  <script type="text/javascript">
+    const Graph = ForceGraph3D()
+      (document.getElementById("3d-graph"));
+
+    let curDataSetIdx = 0,
+      numDim = 3;
+
+    const dataSet = getGraphDataSet();
+
+    dataSet(Graph
+      .resetProps()
+      .enableNodeDrag(false)
+      .numDimensions(numDim)
+    );
+
+    const toggleDimensions = function (numDimensions) {
+      numDim = numDimensions;
+      Graph.numDimensions(numDim);
+    };
+
+    function getGraphDataSet() {
+
+      const loadMiserables = function (Graph) {
+        Graph
+          .nodeLabel('id')
+          .nodeAutoColorBy('group')
+          .jsonUrl('../js/miserables.json');
+      };
+
+      return loadMiserables;
+    }
+
+    function update() {
+      fetch("http://accona.eecs.utk.edu:8599/store/alpaca/index.json", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(window.scene.toJSON())
+      })
+        .then(response => response.json())
+        .catch(err => console.error("Fetch Error =\n", err));
+    }
+    Graph.onEngineStop(update);
+  </script>
+</body>
