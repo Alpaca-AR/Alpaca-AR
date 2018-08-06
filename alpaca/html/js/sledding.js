@@ -169,7 +169,7 @@ function step() {
       racer.position.y -= speed / 0.681818 / 60 / 100; // mph to feet per second to feet per frame to Three.js distance per frame
     } else {
       racer.position.y = - 4 * size + size / 10;
-      racer.name.replace('true', 'false');
+      racer.name = racer.name.replace('true', 'false');
     }
     if (stillRacing) racerCount += 1;
   }
