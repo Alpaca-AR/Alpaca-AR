@@ -226,12 +226,10 @@ const ws = await makeWebSocket(`ws://${window.location.host}/store/alpaca/index.
 };
 
 function processScene(json) {
-	console.log('process', json);
 	objectLoader.parse(json, updateScene);
 };
 
 function updateScene(object) {
-	console.log('update', object);
 	clear(alpacaObjects);
 	alpacaObjects.add(object);
 };
@@ -282,7 +280,7 @@ function clear(obj) {
 		obj.geometry.dispose();
 		obj.geometry = null;
 	}
-	if (obj.material) {
+	if (obj.material && obj.material.map) {
 		if (obj.material.map) {
 			obj.material.map.dispose();
 			obj.material.map = undefined;
