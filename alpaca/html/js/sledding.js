@@ -1,10 +1,41 @@
 let racers = [
-  "Downhill skier",
-  "Skeleton Slider" //,
-  //  "Speed Skater",
-  //  "Cross-country skier",
-  //  "Luger",
-  //  "Bobsledder"
+  {
+    name: "Luge",
+    mph: 81.3
+  },/*
+  {
+    name: "Bobsled",
+    mph: 78.7
+  },
+  {
+    name: "Skeleton slider",
+    mph: 71.9
+  }
+  {
+    name: "Downhill skier",
+    mph: 66.0
+  },
+  {
+    name: "Long-track speed skater",
+    mph: 32.8
+  },
+  {
+    name: "Hockey player",
+    mph: 24.9
+  },
+  {
+    name: "Figure skater",
+    mph: 20.9
+  },
+*/  {
+    name: "Cross-country skier",
+    mph: 17.1
+  },
+/*  {
+    name: "Curler",
+    mph: 11.0
+  }
+*/
 ];
 
 let snowScene = new THREE.Scene(),
@@ -28,7 +59,8 @@ groundMesh.position.set(0, -size * 2, 0.0001);
 groundMesh.updateMatrixWorld();
 trackGroup.add(groundMesh);
 
-let x = -0.05;
+let x = -0.05,
+  racersLeft = 0;
 for (let racer of racers) {
   let racerGeometry = new THREE.BoxBufferGeometry(
       size / 20,
@@ -41,10 +73,13 @@ for (let racer of racers) {
     racerMesh = new THREE.Mesh(racerGeometry, racerMaterial);
   racerMesh.position.set(x, -size / 10, -size / 40);
   racerMesh.updateMatrixWorld();
-  racerMesh.name = racer;
-  trackGroup.add(racerMesh);
+  racerMesh.name = racer.name + ' ' + racer.mph + ' true';
+  racerGroup.add(racerMesh);
   x += 0.1;
+  racersLeft += 1;
 }
+racerGroup.rotation.set(0.5 * Math.PI, 0, 0, "XYZ");
+racerGroup.updateMatrixWorld();
 
 let poleGeometry = new THREE.CylinderGeometry(0.025, 0.05, 0.25),
   poleMaterial = new THREE.MeshBasicMaterial({ color: 0xb20000 }),
@@ -109,9 +144,10 @@ trackGroup.add(
 );
 
 updateScene();
+setTimeout(() => requestAnimationFrame(step), 2000); //used to see them move during testing
 
 async function updateScene() {
-  return fetch("http://accona.eecs.utk.edu:8599/store/alpaca/index.json", {
+  fetch("http://accona.eecs.utk.edu:8599/store/alpaca/index.json", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
@@ -120,4 +156,23 @@ async function updateScene() {
   })
     .then(response => response.json())
     .catch(err => console.error("Fetch Error =\n", err));
+  if (racersLeft > 0) setTimeout(updateScene, 1000/60);
+}
+
+function step() {
+  let racerCount = 0;
+  for (let racer of racerGroup.children) {
+    let racerInfo = racer.name.split(' '),
+      speed = parseFloat(racerInfo[racerInfo.length - 2]),
+      stillRacing = (racerInfo[racerInfo.length - 1] === "true");
+    if (stillRacing && racer.position.y > (-4 * size + size / 10)) {
+      racer.position.y -= speed / 0.681818 / 60 / 100; // mph to feet per second to feet per frame to Three.js distance per frame
+    } else {
+      racer.position.y = - 4 * size + size / 10;
+      racer.name.replace('true', 'false');
+    }
+    if (stillRacing) racerCount += 1;
+  }
+  racersLeft = racerCount;
+  (racersLeft > 0) ? requestAnimationFrame(step) : setTimeout(updateScene, 1000/60);
 }
