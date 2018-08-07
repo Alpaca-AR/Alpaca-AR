@@ -42,6 +42,12 @@ function initNPS() {
   const id = setInterval(() => {
     if (!window.THREE) return;
 
+    THREE.Cache.enabled = true;
+    THREE.ImageUtils.getDataURL = fakeGetDataURL;
+    function fakeGetDataURL(image) {
+      return image.src;
+    }
+
     const textureLoader = new THREE.TextureLoader();
     loadTexture = src => {
       let _resolve, _reject;
@@ -167,7 +173,7 @@ async function mapWatcher(element) {
   }
 
   const { promise, texture } = loadTexture(
-    "http://accona.eecs.utk.edu:8599/img/512x512.png"
+    url + "/img/512x512.png"
   );
   promises.push(promise);
 
