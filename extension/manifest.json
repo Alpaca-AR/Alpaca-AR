@@ -4,7 +4,8 @@
   "manifest_version": 2,
   "description": "Mixed Reality",
   "web_accessible_resources": [
-    "nps.js"
+    "nps.js",
+    "google-books.js"
   ],
   "content_scripts": [
     {
