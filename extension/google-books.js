@@ -64,6 +64,7 @@ function initGoogleBooks() {
 
     clearInterval(id);
 
+    Alpaca.configure({ host: "http://accona.eecs.utk.edu:8599", prefix: "store"});
     bookGroup = new THREE.Group();
     bookGroupParent = new THREE.Group();
     watch(viewport, bookWatcher);
@@ -71,18 +72,10 @@ function initGoogleBooks() {
   }, 100);
 }
 
-async function updateNamespaceObject() {
+async function updateStore() {
   let bookGroupJSON = JSON.stringify(bookGroupParent.toJSON());
   port.postMessage({ setStorage: bookGroupJSON });
-  return fetch(url + "/store/alpaca/index.json", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: bookGroupJSON
-  })
-    .then(response => response.json())
-    .catch(err => console.error("Fetch Error =\n", err));
+  return Alpaca.update("application/json", bookGroupParent, 'alpaca', 'index.json');
 }
 
 let objectLoader = new THREE.ObjectLoader();
@@ -164,7 +157,7 @@ async function updateBooks() {
 
   await Promise.all(promises).catch(e => console.log(e));
 
-  updateNamespaceObject();
+  updateStore();
 }
 
 function clear(obj) {

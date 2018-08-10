@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "Mixed Reality",
-  "web_accessible_resources": ["nps.js", "three.js"],
+  "web_accessible_resources": ["nps.js", "three.js", "alpaca.js"],
   "background": {
     "scripts": ["google-books-background.js"],
     "persistent": true
@@ -34,7 +34,7 @@
       "matches": ["http://pdf.127.0.0.1.xip.io:8080/pdf/"]
     },
     {
-      "js": ["three.js", "google-books.js"],
+      "js": ["three.js", "alpaca.js", "google-books.js"],
       "matches": ["https://books.google.com/*"]
     },
     {
