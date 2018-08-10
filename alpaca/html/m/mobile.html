@@ -1,68 +1,69 @@
 <!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <style>
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
-}
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-#theLogger {
-	position: fixed;
-	top: 0;
-	left: 0;
-	pointer-events: none;
-	display: none;
-}
+  #theLogger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    display: none;
+  }
 
-.hide-ui .toolbar,
-.hide-ui #theLogger,
-.hide-ui canvas[width="80"] {
-	display: none !important;
-}
+  .hide-ui .toolbar,
+  .hide-ui #theLogger,
+  .hide-ui canvas[width="80"] {
+    display: none !important;
+  }
 </style>
+
 <body>
-<div id="app">
-	<div id="canvas"></div>
-</div>
-<div id="theLogger"></div>
-<div id="scene-tree"></div>
-<script>
-(function() {
-	console.log = makeLogger(console.log, 'log');
-	console.warn = makeLogger(console.warn, 'warn');
-	console.error = makeLogger(console.error, 'error');
-	
-	function makeLogger(old, type) {
-		const logger = document.getElementById('theLogger');
-		
-		return function() {
-			const pre = document.createElement('pre');
-			const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
-			pre.appendChild(text);
-			logger.appendChild(pre);
-			old.apply(console, arguments);
-		};
-		
-	}
-})();
-</script>
-<script type="text/javascript" src="../js/alpaca.js"></script>
-<script type="text/javascript" src="../js/object-store.js"></script>
-<script type="text/javascript" src="../js/make-tree.js"></script>
-<script type="text/javascript" src="../js/watch-tree.js"></script>
-<script type="text/javascript" src="../js/patch-tree.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<script src="https://threejs.org/build/three.min.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
-<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
-<script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
-<script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
-<script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
-<script type="text/babel" data-presets="stage-0">
+  <div id="app">
+    <div id="canvas"></div>
+  </div>
+  <div id="theLogger"></div>
+  <div id="scene-tree"></div>
+  <script>
+    (function () {
+      console.log = makeLogger(console.log, 'log');
+      console.warn = makeLogger(console.warn, 'warn');
+      console.error = makeLogger(console.error, 'error');
+
+      function makeLogger(old, type) {
+        const logger = document.getElementById('theLogger');
+
+        return function () {
+          const pre = document.createElement('pre');
+          const text = document.createTextNode(type + ':' + Array.from(arguments).join(''));
+          pre.appendChild(text);
+          logger.appendChild(pre);
+          old.apply(console, arguments);
+        };
+
+      }
+    })();
+  </script>
+  <script type="text/javascript" src="../js/alpaca.js"></script>
+  <script type="text/javascript" src="../js/object-store.js"></script>
+  <script type="text/javascript" src="../js/make-tree.js"></script>
+  <script type="text/javascript" src="../js/watch-tree.js"></script>
+  <script type="text/javascript" src="../js/patch-tree.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="https://threejs.org/build/three.min.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
+  <script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
+  <script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
+  <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <script type="text/babel" data-presets="stage-0">
 (async () => {
 
 const contentType = 'application/json', namespace = 'alpaca', name = 'index.json';
@@ -142,69 +143,6 @@ const reticle = do {
         }
 };
 
-
-const controls = do {
-        if (display) {
-                const controls = new THREE.VRControls(camera);
-                addTouchControls();
-                controls;
-        } else {
-                const controls = new THREE.OrbitControls(camera);
-                patchControls(controls);
-                controls;
-        }
-};
-
-function addTouchControls() {
-  let canvas = document.getElementsByTagName("canvas")[0],
-    hammer = new Hammer(canvas);
-
-  hammer.get('pinch').set({ enable: true });
-  hammer.on('pinch', ev => {
-    alpacaObjects.scale.set(
-      alpacaObjects.scale.x * ev.scale,
-      alpacaObjects.scale.y * ev.scale,
-      alpacaObjects.scale.z * ev.scale
-    );
-    alpacaObjects.updateMatrixWorld();
-  });
-
-  hammer.on('tap', ev => {
-    alpacaObjects.position.set(
-      camera.position.x,
-      camera.position.y,
-      camera.position.y
-    );
-    alpacaObjects.rotation.set(
-      camera.rotation.x,
-      camera.rotation.y,
-      camera.rotation.z
-    );
-  });
-
-
-  hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-  let lastPosition;
-  hammer.on('panstart panmove panend', ev => {
-    let currentPosition = { x: ev.center.x + ev.deltaX, y: ev.center.y + ev.deltaY };
-    if (ev.type == "panstart") {
-      lastPosition = currentPosition;
-    }
-
-    let change = { x: currentPosition.x - lastPosition.x, y: currentPosition.y - lastPosition.y },
-      w = document.body.clientWidth,
-      h = document.body.clientHeight;
-
-    alpacaObjects.rotation.set(
-      alpacaObjects.rotation.x + (change.y / w) * Math.PI,
-      alpacaObjects.rotation.y + (change.x / w) * Math.PI,
-      alpacaObjects.rotation.z
-    );
-    
-    lastPosition = currentPosition;
-  })
-}
-
 var stats1, stats2, stats3;
 const p1 = do {
 	const panel = do {
@@ -273,6 +211,100 @@ const alpacaObjects = do {
 	const group = new THREE.Group();
 	scenes.main.add(group);
 	group;
+};
+
+
+function addTouchControls() {
+  let canvas = document.getElementsByTagName("canvas")[0],
+    hammer = new Hammer(canvas),
+    selectedObject = alpacaObjects;
+
+  hammer.get('pinch').set({ enable: true });
+  hammer.on('pinch', ev => {
+    selectedObject.scale.set(
+      selectedObject.scale.x * ev.scale,
+      selectedObject.scale.y * ev.scale,
+      selectedObject.scale.z * ev.scale
+    );
+    selectedObject.updateMatrixWorld();
+  });
+
+  let raycaster = new THREE.Raycaster(),
+    mouse = new THREE.Vector2();
+  hammer.on('tap', ev => {
+    mouse.x = (ev.center.x / window.innerWidth) * 2 - 1;
+    mouse.y = - (ev.center.y / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    let selected = raycaster.intersectObjects(alpacaObjects.children, true);
+    if (typeof selected !== 'undefined') {
+      let changed = false;
+      for (let i = 0, n = selected.length; i < n; i++) {
+        let transformed = selected[i].object.userData.canBeTransformed;
+        if (typeof transformed === 'undefined' || transformed === true) {
+          selectedObject = selected[i].object;
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) selectedObject = alpacaObjects;
+    }
+    opacityChange(selectedObject, 0.8);
+    setTimeout(() => opacityChange(selectedObject, 1), 100);
+  });
+
+  function opacityChange(obj, value) {
+    if (obj.material) obj.material.opacity = value;
+    for (let child of obj.children) {
+      opacityChange(child, value);
+    }
+  }
+
+  hammer.on('press', ev => {
+    selectedObject.position.set(
+      camera.position.x,
+      camera.position.y,
+      camera.position.y
+    );
+    selectedObject.rotation.set(
+      camera.rotation.x,
+      camera.rotation.y,
+      camera.rotation.z
+    );
+  });
+
+
+  hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+  let lastPosition;
+  hammer.on('panstart panmove panend', ev => {
+    let currentPosition = { x: ev.center.x + ev.deltaX, y: ev.center.y + ev.deltaY };
+    if (ev.type == "panstart") {
+      lastPosition = currentPosition;
+    }
+
+    let change = { x: currentPosition.x - lastPosition.x, y: currentPosition.y - lastPosition.y },
+      w = document.body.clientWidth,
+      h = document.body.clientHeight;
+
+    selectedObject.rotation.set(
+      selectedObject.rotation.x + (change.y / w) * Math.PI,
+      selectedObject.rotation.y + (change.x / w) * Math.PI,
+      selectedObject.rotation.z
+    );
+    
+    lastPosition = currentPosition;
+  })
+}
+
+const controls = do {
+  if (display) {
+    const controls = new THREE.VRControls(camera);
+    addTouchControls();
+    controls;
+  } else {
+    const controls = new THREE.OrbitControls(camera);
+    patchControls(controls);
+    controls;
+  }
 };
 
 Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "store" });
@@ -361,7 +393,7 @@ async function render() {
 		view.render();
 		camera.updateProjectionMatrix();
 	
-		controls.update();
+		//controls.update();
 	}
 
 	renderer.clearDepth();
