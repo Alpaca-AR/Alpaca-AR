@@ -64,7 +64,7 @@ function initGoogleBooks() {
 
     clearInterval(id);
 
-    Alpaca.configure({ host: "http://accona.eecs.utk.edu:8599", prefix: "store"});
+    Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "store"});
     bookGroup = new THREE.Group();
     bookGroupParent = new THREE.Group();
     watch(viewport, bookWatcher);

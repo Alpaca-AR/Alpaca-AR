@@ -142,6 +142,11 @@ const reticle = do {
         }
 };
 
+const alpacaObjects = do {
+	const group = new THREE.Group();
+	scenes.main.add(group);
+	group;
+};
 
 const controls = do {
         if (display) {
@@ -155,54 +160,85 @@ const controls = do {
         }
 };
 
-function addTouchControls() {
-  let canvas = document.getElementsByTagName("canvas")[0],
-    hammer = new Hammer(canvas);
-
-  hammer.get('pinch').set({ enable: true });
-  hammer.on('pinch', ev => {
-    alpacaObjects.scale.set(
-      alpacaObjects.scale.x * ev.scale,
-      alpacaObjects.scale.y * ev.scale,
-      alpacaObjects.scale.z * ev.scale
-    );
-    alpacaObjects.updateMatrixWorld();
-  });
-
-  hammer.on('tap', ev => {
-    alpacaObjects.position.set(
-      camera.position.x,
-      camera.position.y,
-      camera.position.y
-    );
-    alpacaObjects.rotation.set(
-      camera.rotation.x,
-      camera.rotation.y,
-      camera.rotation.z
-    );
-  });
-
-
-  hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-  let lastPosition;
-  hammer.on('panstart panmove panend', ev => {
-    let currentPosition = { x: ev.center.x + ev.deltaX, y: ev.center.y + ev.deltaY };
-    if (ev.type == "panstart") {
-      lastPosition = currentPosition;
-    }
-
-    let change = { x: currentPosition.x - lastPosition.x, y: currentPosition.y - lastPosition.y },
-      w = document.body.clientWidth,
-      h = document.body.clientHeight;
-
-    alpacaObjects.rotation.set(
-      alpacaObjects.rotation.x + (change.y / w) * Math.PI,
-      alpacaObjects.rotation.y + (change.x / w) * Math.PI,
-      alpacaObjects.rotation.z
-    );
-    
-    lastPosition = currentPosition;
-  })
+function addTouchControls() { 
+  let canvas = document.getElementsByTagName("canvas")[0], 
+    hammer = new Hammer(canvas), 
+    selectedObject = alpacaObjects; 
+ 
+  hammer.get('pinch').set({ enable: true }); 
+  hammer.on('pinch', ev => { 
+    selectedObject.scale.set( 
+      selectedObject.scale.x * ev.scale, 
+      selectedObject.scale.y * ev.scale, 
+      selectedObject.scale.z * ev.scale 
+    ); 
+    selectedObject.updateMatrixWorld(); 
+  }); 
+ 
+  let raycaster = new THREE.Raycaster(), 
+    mouse = new THREE.Vector2(); 
+  hammer.on('tap', ev => { 
+    mouse.x = (ev.center.x / window.innerWidth) * 2 - 1; 
+    mouse.y = - (ev.center.y / window.innerHeight) * 2 + 1; 
+    raycaster.setFromCamera(mouse, camera); 
+    let selected = raycaster.intersectObjects(alpacaObjects.children, true); 
+    if (typeof selected !== 'undefined') { 
+      let changed = false; 
+      for (let i = 0, n = selected.length; i < n; i++) { 
+        let transformed = selected[i].object.userData.canBeTransformed; 
+        if (typeof transformed === 'undefined' || transformed === true) { 
+          selectedObject = selected[i].object; 
+          changed = true; 
+          break; 
+        } 
+      } 
+      if (!changed) selectedObject = alpacaObjects; 
+    } 
+    opacityChange(selectedObject, 0.8); 
+    setTimeout(() => opacityChange(selectedObject, 1), 100); 
+  }); 
+ 
+  function opacityChange(obj, value) { 
+    if (obj.material) obj.material.opacity = value; 
+    for (let child of obj.children) { 
+      opacityChange(child, value); 
+    } 
+  } 
+ 
+  hammer.on('press', ev => { 
+    selectedObject.position.set( 
+      camera.position.x, 
+      camera.position.y, 
+      camera.position.y 
+    ); 
+    selectedObject.rotation.set( 
+      camera.rotation.x, 
+      camera.rotation.y, 
+      camera.rotation.z 
+    ); 
+  }); 
+ 
+ 
+  hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL }); 
+  let lastPosition; 
+  hammer.on('panstart panmove panend', ev => { 
+    let currentPosition = { x: ev.center.x + ev.deltaX, y: ev.center.y + ev.deltaY }; 
+    if (ev.type == "panstart") { 
+      lastPosition = currentPosition; 
+    } 
+ 
+    let change = { x: currentPosition.x - lastPosition.x, y: currentPosition.y - lastPosition.y }, 
+      w = document.body.clientWidth, 
+      h = document.body.clientHeight; 
+ 
+    selectedObject.rotation.set( 
+      selectedObject.rotation.x + (change.y / w) * Math.PI, 
+      selectedObject.rotation.y + (change.x / w) * Math.PI, 
+      selectedObject.rotation.z 
+    ); 
+     
+    lastPosition = currentPosition; 
+  }) 
 }
 
 var stats1, stats2, stats3;
@@ -267,12 +303,6 @@ const p3 = do {
 	};
 	
 	panel;
-};
-
-const alpacaObjects = do {
-	const group = new THREE.Group();
-	scenes.main.add(group);
-	group;
 };
 
 Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "store" });
