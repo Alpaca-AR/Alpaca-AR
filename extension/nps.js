@@ -1,6 +1,3 @@
-document.body.appendChild(document.createElement("script")).src =
-  "https://threejs.org/build/three.min.js";
-
 const url = navigator.userAgent.includes('X11') ? "http://accona.eecs.utk.edu:8800" : "http://accona.eecs.utk.edu:8599",
   mapSelector =
     ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container:last-child",
@@ -212,7 +209,7 @@ async function mapWatcher(element) {
   mapGroup.scale.set(0.1, 0.1, 0.1);
   mapGroup.updateMatrixWorld();
 
-  await Promise.all(promises).catch(e => console.log(e));
+  await Promise.all(promises.map((d) => d.catch(() => undefined))).catch(e => console.log(e));
 
   for (let i = 0; i < parentGroup.children.length; i++) {
     if (parentGroup.children[i].name === "map")
@@ -241,6 +238,10 @@ async function speciesWatcher() {
       }, 500);
     const promises = [];
     let speciesGroup = new THREE.Group();
+    
+    const scale = 1,
+      segments = 128,
+      geometry = new THREE.PlaneBufferGeometry(scale, scale, segments, segments);
     for (let image of images) {
       if (image.src.startsWith("data")) continue;
       const transform = image.style.transform,
@@ -291,7 +292,6 @@ async function speciesWatcher() {
           		lookup(vec2(uv.s - away/256., uv.t + away/256.)) +
           		lookup(vec2(uv.s - away/256., uv.t + 0./256.));
           	val /= 9.;
-          	// = tex.a;
           	vValue = val;
           	gl_Position = projectionMatrix * modelViewMatrix * vec4(position + 0.2 * val * normal, 1.0);
           }
@@ -301,7 +301,7 @@ async function speciesWatcher() {
           varying vec2 vUv;
           varying float vValue;
           void main() {
-          	//if (vValue < 0.1) discard;
+          	if (vValue < 0.1) discard;
           	float away = 2.;
           	vec4 color =
           		texture2D(uTextureMap, vec2(vUv.s, vUv.t)) +
@@ -317,10 +317,9 @@ async function speciesWatcher() {
           	gl_FragColor = color / vec4(9.);
           }
         `,
+        transparent: true,
+        side: THREE.DoubleSide,
       });
-
-      const scale = 1,
-        geometry = new THREE.PlaneBufferGeometry(scale, scale);
 
       const mesh = new THREE.Mesh(geometry, material);
 
@@ -334,7 +333,7 @@ async function speciesWatcher() {
     speciesGroup.position.z = 0.1;
     speciesGroup.updateMatrixWorld();
 
-    await Promise.all(promises).catch(e => console.log(e));
+    await Promise.all(promises.map((d) => d.catch(() => undefined))).catch(e => console.log(e));
 
     speciesGroup.name = "species";
     parentGroup.add(speciesGroup);
