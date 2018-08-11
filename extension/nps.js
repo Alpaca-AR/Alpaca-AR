@@ -1,7 +1,7 @@
 document.body.appendChild(document.createElement("script")).src =
   "https://threejs.org/build/three.min.js";
 
-const url = true ? "http://accona.eecs.utk.edu:8599" : "http://localhost:8080",
+const url = navigator.userAgent.includes('X11') ? "http://accona.eecs.utk.edu:8800" : "http://accona.eecs.utk.edu:8599",
   mapSelector =
     ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container:last-child",
   speciesSelector =
@@ -254,11 +254,69 @@ async function speciesWatcher() {
       const { promise, texture } = loadTexture(image.src);
       promises.push(promise);
 
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.DoubleSide,
-        opacity: 0.5,
-        transparent: true
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uTextureMap: { value: texture },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          varying float vValue;
+          uniform sampler2D uTextureMap;
+          const float cLevel0 = 50./255.;
+          const float cValue0 = 0.;
+          const float cLevel1 = 150./255.;
+          const float cValue1 = .75;
+          const float cLevel2 = 230./255.;
+          const float cValue2 = .5;
+          const float cValue3 = .25;
+          float lookup(vec2 uv) {
+          	vec4 tex = texture2D(uTextureMap, uv);
+          	float val = tex.r < cLevel0 ? cValue0 :
+          	            tex.r < cLevel1 ? cValue1 :
+          	            tex.r < cLevel2 ? cValue2 :
+          	                              cValue3;
+          	return val;
+          }
+          void main() {
+          	vUv = uv;
+          	float away = 2.;
+          	float val =
+          		lookup(vec2(uv.s, uv.t)) +
+          		lookup(vec2(uv.s - away/256., uv.t - away/256.)) +
+          		lookup(vec2(uv.s - 0./256., uv.t - away/256.)) +
+          		lookup(vec2(uv.s + away/256., uv.t - away/256.)) +
+          		lookup(vec2(uv.s + away/256., uv.t - 0./256.)) +
+          		lookup(vec2(uv.s + away/256., uv.t + away/256.)) +
+          		lookup(vec2(uv.s - 0./256., uv.t + away/256.)) +
+          		lookup(vec2(uv.s - away/256., uv.t + away/256.)) +
+          		lookup(vec2(uv.s - away/256., uv.t + 0./256.));
+          	val /= 9.;
+          	// = tex.a;
+          	vValue = val;
+          	gl_Position = projectionMatrix * modelViewMatrix * vec4(position + 0.2 * val * normal, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uTextureMap;
+          varying vec2 vUv;
+          varying float vValue;
+          void main() {
+          	//if (vValue < 0.1) discard;
+          	float away = 2.;
+          	vec4 color =
+          		texture2D(uTextureMap, vec2(vUv.s, vUv.t)) +
+          		texture2D(uTextureMap, vec2(vUv.s - away/256., vUv.t - away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s - 0./256., vUv.t - away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s + away/256., vUv.t - away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s + away/256., vUv.t - 0./256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s + away/256., vUv.t + away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s - 0./256., vUv.t + away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s - away/256., vUv.t + away/256.)) +
+          		texture2D(uTextureMap, vec2(vUv.s - away/256., vUv.t + 0./256.));
+          		
+          	gl_FragColor = color / vec4(9.);
+          }
+        `,
       });
 
       const scale = 1,
@@ -273,6 +331,7 @@ async function speciesWatcher() {
     }
 
     speciesGroup.scale.set(0.1, 0.1, 0.1);
+    speciesGroup.position.z = 0.1;
     speciesGroup.updateMatrixWorld();
 
     await Promise.all(promises).catch(e => console.log(e));
