@@ -1,4 +1,4 @@
-const url = true ? "http://accona.eecs.utk.edu:8599" : "http://localhost:8080",
+const host = navigator.userAgent.includes('X11') ? "accona.eecs.utk.edu:8800" : "accona.eecs.utk.edu:8599",
   bookPageSelector = ".pageImageDisplay > div:nth-child(3) > img",
   watchDefaultConfig = { attributes: true, childList: true, subtree: true },
   viewport = document.querySelector("#viewport");
@@ -64,7 +64,7 @@ function initGoogleBooks() {
 
     clearInterval(id);
 
-    Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "store"});
+    Alpaca.configure({ host, prefix: "store" });
     bookGroup = new THREE.Group();
     bookGroupParent = new THREE.Group();
     watch(viewport, bookWatcher);
