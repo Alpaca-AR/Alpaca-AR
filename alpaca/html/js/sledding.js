@@ -147,7 +147,7 @@ updateScene();
 setTimeout(() => requestAnimationFrame(step), 2000); //used to see them move during testing
 
 async function updateScene() {
-  fetch("http://accona.eecs.utk.edu:8599/store/alpaca/index.json", {
+  fetch("http://accona.eecs.utk.edu:8800/store/alpaca/index.json", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"

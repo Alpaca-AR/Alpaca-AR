@@ -12,7 +12,6 @@
 	top: 0;
 	left: 0;
 	pointer-events: none;
-	display: none;
 }
 
 .hide-ui .toolbar,
@@ -163,17 +162,26 @@ const controls = do {
 function addTouchControls() { 
   let canvas = document.getElementsByTagName("canvas")[0], 
     hammer = new Hammer(canvas), 
-    selectedObject = alpacaObjects; 
+    selectedObject = alpacaObjects,
+    initialScale = null;
  
   hammer.get('pinch').set({ enable: true }); 
-  hammer.on('pinch', ev => { 
+  hammer.on('pinchstart', (ev) => {
+    initialScale = selectedObject.scale.clone();
+  });
+  
+  hammer.on('pinchmove', ev => { 
     selectedObject.scale.set( 
-      selectedObject.scale.x * ev.scale, 
-      selectedObject.scale.y * ev.scale, 
-      selectedObject.scale.z * ev.scale 
+      initialScale.x * ev.scale, 
+      initialScale.y * ev.scale, 
+      initialScale.z * ev.scale 
     ); 
     selectedObject.updateMatrixWorld(); 
-  }); 
+  });
+  
+  hammer.on('pinchend', () => {
+    initialScale = null;
+  });
  
   let raycaster = new THREE.Raycaster(), 
     mouse = new THREE.Vector2(); 
@@ -206,16 +214,8 @@ function addTouchControls() {
   } 
  
   hammer.on('press', ev => { 
-    selectedObject.position.set( 
-      camera.position.x, 
-      camera.position.y, 
-      camera.position.y 
-    ); 
-    selectedObject.rotation.set( 
-      camera.rotation.x, 
-      camera.rotation.y, 
-      camera.rotation.z 
-    ); 
+    selectedObject.position.copy(camera.position);
+    selectedObject.rotation.copy(camera.rotation);
   }); 
  
  
@@ -305,7 +305,8 @@ const p3 = do {
 	panel;
 };
 
-Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "store" });
+Alpaca.configure({
+});
 
 const initial = await Alpaca.load(contentType, namespace, name).then(res => res.json());
 processScene(initial);

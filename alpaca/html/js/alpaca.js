@@ -1,5 +1,5 @@
 var Alpaca = (function() {
-  var hostname = window.location.hostname,
+  var hostname = window.location.host,
     prefix = "/store";
 
   /**
@@ -72,7 +72,7 @@ var Alpaca = (function() {
     namespace = checkType(namespace, "namespace", "string");
     name = typeof name !== "undefined" ? checkType(name, "name", "string") : "";
 
-    return fetch(`http://${hostname}/${prefix}/${namespace}/${name}`, options);
+    return fetch(`http://${hostname}${prefix}/${namespace}/${name}`, options);
   };
 
   /**
@@ -141,7 +141,7 @@ var Alpaca = (function() {
    */
   var listen = async function(namespace, name, onMessage) {
     return await new Promise(resolve => {
-      let ws = new WebSocket(`ws://${hostname}/${prefix}/${namespace}/${name}`);
+      let ws = new WebSocket(`ws://${hostname}${prefix}/${namespace}/${name}`);
       ws.onmessage = onMessage;
       ws.onopen = () => resolve(ws);
       ws.onerror = () => reject(ws);
