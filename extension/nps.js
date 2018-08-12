@@ -136,6 +136,10 @@ async function mapWatcher(element) {
     maxX = -100,
     maxY = -100,
     tiles = {};
+
+  const scale = 1,
+    segments = 128,
+    geometry = new THREE.PlaneBufferGeometry(scale, scale, segments, segments);
   for (let image of images) {
     if (image.src.startsWith("data")) continue;
     const transform = image.style.transform,
@@ -152,14 +156,53 @@ async function mapWatcher(element) {
 
     const { promise, texture } = loadTexture(image.src);
     promises.push(promise);
+    
+    const { promise: promise2, texture: texture2 } = loadTexture(image.src.replace(/v4\/[^/]*\//, 'v4/mapbox.terrain-rgb/').replace('.png', '.pngraw'));
+    promises.push(promise2);
 
-    const material = new THREE.MeshBasicMaterial({
-      map: texture,
-      side: THREE.DoubleSide
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTextureMap: { value: texture },
+        uHeightMap: { value: texture2 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        uniform sampler2D uTextureMap;
+        uniform sampler2D uHeightMap;
+        float lookup(vec2 uv) {
+        	// Thanks https://www.mapbox.com/help/access-elevation-data/
+        	// height(meters) = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1)
+        	vec4 hc = texture2D(uHeightMap, uv);
+        	float height = -10000.0 + ((hc.r * 256.0 * 256.0 + hc.g * 256.0 + hc.b) * 0.1) + 9960.0;
+        	return height;
+        }
+        void main() {
+        	vUv = uv;
+        	float away = 2.;
+        	float height =
+        		lookup(vec2(uv.s, uv.t)) +
+        		lookup(vec2(uv.s - away/256., uv.t - away/256.)) +
+        		lookup(vec2(uv.s - 0./256., uv.t - away/256.)) +
+        		lookup(vec2(uv.s + away/256., uv.t - away/256.)) +
+        		lookup(vec2(uv.s + away/256., uv.t - 0./256.)) +
+        		lookup(vec2(uv.s + away/256., uv.t + away/256.)) +
+        		lookup(vec2(uv.s - 0./256., uv.t + away/256.)) +
+        		lookup(vec2(uv.s - away/256., uv.t + away/256.)) +
+        		lookup(vec2(uv.s - away/256., uv.t + 0./256.));
+        	height /= 9.;
+        	gl_Position = projectionMatrix * modelViewMatrix * vec4(position + 0.1 * height * normal, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uTextureMap;
+        varying vec2 vUv;
+        void main() {
+        	gl_FragColor = texture2D(uTextureMap, vUv);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
     });
-
-    const scale = 1,
-      geometry = new THREE.PlaneBufferGeometry(scale, scale);
 
     const mesh = new THREE.Mesh(geometry, material);
 
@@ -254,15 +297,20 @@ async function speciesWatcher() {
 
       const { promise, texture } = loadTexture(image.src);
       promises.push(promise);
+    
+    const { promise: promise2, texture: texture2 } = loadTexture(image.src.replace(/v4\/[^/]*\//, 'v4/mapbox.terrain-rgb/').replace('.png', '.pngraw'));
+    promises.push(promise2);
 
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTextureMap: { value: texture },
+        uHeightMap: { value: texture2 },
         },
         vertexShader: `
           varying vec2 vUv;
           varying float vValue;
           uniform sampler2D uTextureMap;
+          uniform sampler2D uHeightMap;
           const float cLevel0 = 50./255.;
           const float cValue0 = 0.;
           const float cLevel1 = 150./255.;
@@ -278,6 +326,13 @@ async function speciesWatcher() {
           	                              cValue3;
           	return val;
           }
+        float lookup2(vec2 uv) {
+        	// Thanks https://www.mapbox.com/help/access-elevation-data/
+        	// height(meters) = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1)
+        	vec4 hc = texture2D(uHeightMap, uv);
+        	float height = -10000.0 + ((hc.r * 256.0 * 256.0 + hc.g * 256.0 + hc.b) * 0.1) + 9960.0;
+        	return height;
+        }
           void main() {
           	vUv = uv;
           	float away = 2.;
@@ -292,8 +347,19 @@ async function speciesWatcher() {
           		lookup(vec2(uv.s - away/256., uv.t + away/256.)) +
           		lookup(vec2(uv.s - away/256., uv.t + 0./256.));
           	val /= 9.;
+        	float height =
+        		lookup2(vec2(uv.s, uv.t)) +
+        		lookup2(vec2(uv.s - away/256., uv.t - away/256.)) +
+        		lookup2(vec2(uv.s - 0./256., uv.t - away/256.)) +
+        		lookup2(vec2(uv.s + away/256., uv.t - away/256.)) +
+        		lookup2(vec2(uv.s + away/256., uv.t - 0./256.)) +
+        		lookup2(vec2(uv.s + away/256., uv.t + away/256.)) +
+        		lookup2(vec2(uv.s - 0./256., uv.t + away/256.)) +
+        		lookup2(vec2(uv.s - away/256., uv.t + away/256.)) +
+        		lookup2(vec2(uv.s - away/256., uv.t + 0./256.));
+        	height /= 9.;
           	vValue = val;
-          	gl_Position = projectionMatrix * modelViewMatrix * vec4(position + 0.2 * val * normal, 1.0);
+          	gl_Position = projectionMatrix * modelViewMatrix * vec4(position + (0.1 * height) * normal, 1.0);
           }
         `,
         fragmentShader: `
@@ -330,7 +396,7 @@ async function speciesWatcher() {
     }
 
     speciesGroup.scale.set(0.1, 0.1, 0.1);
-    speciesGroup.position.z = 0.1;
+    speciesGroup.position.z = 1.0 /* millimeters */ / 1000.0;
     speciesGroup.updateMatrixWorld();
 
     await Promise.all(promises.map((d) => d.catch(() => undefined))).catch(e => console.log(e));
