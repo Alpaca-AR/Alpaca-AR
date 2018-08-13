@@ -72,6 +72,7 @@ var Alpaca = (function() {
     namespace = checkType(namespace, "namespace", "string");
     name = typeof name !== "undefined" ? checkType(name, "name", "string") : "";
 
+    console.log(hostname, prefix, namespace);
     return fetch(`http://${hostname}${prefix}/${namespace}/${name}`, options);
   };
 

@@ -212,10 +212,13 @@ async function mapWatcher(element) {
     mapGroup.add(mesh);
   }
 
-  const { promise, texture } = loadTexture(
+  let error = loadTexture(
     url + "/img/512x512.png"
-  );
-  promises.push(promise);
+  ),
+    wood = loadTexture(url + '/img/wood.jpg');
+
+  promises.push(error.promise);
+  promises.push(wood.promise);
 
   const width = maxX - minX + 3,
     height = maxY - minY + 3,
@@ -224,35 +227,43 @@ async function mapWatcher(element) {
   for (let i = 0; i < tileCount; i++) {
     currentX = minX - 1 + (i % width);
     currentY = maxY + 1 - Math.floor(i / width);
-    if (tiles[currentX + ", " + currentY] !== true) {
+    const material = new THREE.MeshBasicMaterial({
+      side: THREE.DoubleSide
+    });
+
+    const scale = 1,
+      geometry = new THREE.PlaneBufferGeometry(scale, scale);
+
+    let tile = new THREE.Mesh(geometry, material);
+    tile.position.set(currentX, currentY, 0);
+    if (
+      currentX >= minX &&
+      currentX <= maxX &&
+      currentY >= minY &&
+      currentY <= maxY &&
+      tiles[currentX + ", " + currentY] !== true
+    ) {
       const material = new THREE.MeshBasicMaterial({
-        color: 0x191919,
+        map: error.texture,
+        color: 0xffffff,
         side: THREE.DoubleSide
-      });
-
-      const scale = 1,
+      }),
         geometry = new THREE.PlaneBufferGeometry(scale, scale);
-
-      let tile = new THREE.Mesh(geometry, material);
-      tile.position.set(currentX, currentY, 0);
-      if (
-        currentX >= minX &&
-        currentX <= maxX &&
-        currentY >= minY &&
-        currentY <= maxY
-      ) {
-        tile.material.map = texture;
-        tile.material.color.setRGB(1, 1, 1);
-      }
-      tile.updateMatrixWorld();
-      mapGroup.add(tile);
+  
+      let errorTile = new THREE.Mesh(geometry, material);
+      errorTile.position.set(currentX, currentY, 0.01);
+      mapGroup.add(errorTile);
     }
+    
+    tile.material.map = wood.texture;
+    tile.updateMatrixWorld();
+    mapGroup.add(tile);
   }
 
   mapGroup.scale.set(0.1, 0.1, 0.1);
   mapGroup.updateMatrixWorld();
 
-  await Promise.all(promises.map((d) => d.catch(() => undefined))).catch(e => console.log(e));
+  await Promise.all(promises.map(d => d.catch(() => undefined))).catch(e => console.log(e));
 
   for (let i = 0; i < parentGroup.children.length; i++) {
     if (parentGroup.children[i].name === "map")

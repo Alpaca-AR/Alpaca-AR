@@ -305,8 +305,7 @@ const p3 = do {
 	panel;
 };
 
-Alpaca.configure({
-});
+Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "/store"});
 
 const initial = await Alpaca.load(contentType, namespace, name).then(res => res.json());
 processScene(initial);
