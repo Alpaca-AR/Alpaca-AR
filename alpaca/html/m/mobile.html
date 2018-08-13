@@ -60,11 +60,21 @@
 <script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
 <script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
 <script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+<script src="https://unpkg.com/timesync@1.0.3/dist/timesync.js"></script>
+<script src="https://unpkg.com/qs@6.5.2/dist/qs.js"></script>
 <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
 <script type="text/babel" data-presets="stage-0">
 (async () => {
 
 const contentType = 'application/json', namespace = 'alpaca', name = 'index.json';
+
+const ts = do {
+	const ts = timesync.create({
+		server: '/timesync'
+	});
+	ts.sync();
+	ts;
+};
 
 // three.ar.js returns falsey if this is not an AR device.
 // Can be used to detect if this is a desktop web browser.
@@ -311,6 +321,18 @@ Alpaca.configure({
 const initial = await Alpaca.load(contentType, namespace, name).then(res => res.json());
 processScene(initial);
 
+const query = window.location.hash.substring(1).split(',').reduce(({ _, ...acc }, d, i) => {
+	if (i % 2 === 0) {
+		return { ...acc, _: d };
+	}
+	
+	return { ...acc, [_]: d };
+}, {});
+
+const shouldLog = 'log' in query,
+      logLimit = shouldLog && query.log,
+      logStart = shouldLog && ts.now();
+
 const onMessage = e => {
   const json = JSON.parse(e.data);
   processScene(json);
@@ -387,6 +409,8 @@ async function render() {
 	stats2.begin();
 	stats3.begin();
 	
+	const begin = (performance || Date).now();
+	
 	if (display) {
 		reticle.update();
 		view.render();
@@ -399,6 +423,18 @@ async function render() {
 	renderer.render(scenes.reticle, camera);
 	renderer.clearDepth();
 	renderer.render(scenes.main, camera);
+	
+	const now = ts.now();
+	if (shouldLog && now - logStart < logLimit) {
+		const end = (performance || Date).now(),
+		      memory = performance.memory;
+		Alpaca.create('application/json', JSON.stringify({
+			now,
+			from: 'mobile',
+			ms: end - begin,
+			mem: memory.usedJSHeapSize / 1024 / 1024,
+		}), 'log');
+	}
 	
 	stats3.end();
 	stats2.end();

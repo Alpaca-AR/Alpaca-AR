@@ -3,6 +3,8 @@
 """
 
 from uuid import uuid4
+import json
+from base64 import b64encode
 from collections import defaultdict
 from asyncio import Queue
 
@@ -70,6 +72,12 @@ class Namespace(object):
 	@property
 	def entries(self):
 		return list(self._entries.keys())
+	
+	def entries_deep(self, *, json=False):
+		if json:
+			return { k: v.json() for k, v in self._entries.items() if v }
+		
+		return { k: v.asdict() for k, v in self._entries.items() if v }
 
 
 class Entry(object):
@@ -81,6 +89,9 @@ class Entry(object):
 		self.body = body
 		self.etag = etag
 		self.subscribers = []
+	
+	def __bool__(self):
+		return self.status != 404
 	
 	@classmethod
 	def missing(cls):
@@ -118,4 +129,14 @@ class Entry(object):
 				'Cache-Control': 'no-cache',
 			},
 		)
-
+	
+	def asdict(self):
+		return {
+			'status': self.status,
+			'content_type': self.content_type,
+			'body': b64encode(self.body).decode('ascii'),
+			'etag': self.etag,
+		}
+	
+	def json(self):
+		return json.loads(self.body)

@@ -57,8 +57,15 @@ class StoreView(View, StoreMixin):
 
 class NamespaceView(View, StoreMixin, NamespaceMixin):
 	async def get(self):
-		print('get namespace')
-		entries = self.namespace.entries
+		deep = 'deep' in self.request.query
+		json = 'json' in self.request.query
+		
+		if deep and json:
+			entries = self.namespace.entries_deep(json=True)
+		elif deep:
+			entries = self.namespace.entries_deep()
+		else:
+			entries = self.namespace.entries
 		
 		return json_response({
 			'status': 'success',
@@ -120,6 +127,28 @@ class EntryView(View, StoreMixin, NamespaceMixin, EntryMixin):
 					await ws.send_str(text)
 
 	async def put(self):
+		if self.entry is None:
+			raise ValueError('Entry does not already exist')
+		
+		self.entry = await Entry.from_request(self.request)
+		
+		# need to retrieve entry again from store if it updated
+		await self.namespace.notify(self.entry_key, self.entry)
+		
+		kwargs = {}
+		kwargs['namespace'] = self.namespace_key
+		kwargs['entry'] = self.entry_key
+		
+		url = self.request.app.router['store-entry'].url_for(**kwargs)
+		
+		return json_response({
+			'status': 'success',
+			'data': {
+				'url': str(url),
+			},
+		})
+	
+	async def patch(self):
 		if self.entry is None:
 			raise ValueError('Entry does not already exist')
 		

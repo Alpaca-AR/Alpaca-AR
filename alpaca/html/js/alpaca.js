@@ -114,15 +114,7 @@ var Alpaca = (function() {
    * @return {Object} A fetch promise
    */
   var create = async function(contentType, body, namespace) {
-    body = checkType(body, "body", "object");
-    let json, jsonString;
-    try {
-      json = body.toJSON();
-      jsonString = JSON.stringify(json);
-    } catch (e) {
-      throw new Error(e);
-    }
-    return makeRequest("POST", contentType, jsonString, namespace);
+    return makeRequest("POST", contentType, body, namespace);
   };
 
   /**

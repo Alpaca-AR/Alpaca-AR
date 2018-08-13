@@ -141,7 +141,7 @@ var Alpaca = (function() {
    */
   var listen = async function(namespace, name, onMessage) {
     return await new Promise(resolve => {
-      let ws = new WebSocket(`ws://${hostname}/${prefix}/${namespace}/${name}`);
+      let ws = new WebSocket(`ws://${hostname}${prefix}/${namespace}/${name}`);
       ws.onmessage = onMessage;
       ws.onopen = () => resolve(ws);
       ws.onerror = () => reject(ws);

@@ -3,7 +3,10 @@
 """
 
 from pathlib import Path
-from aiohttp.web import Application, RouteTableDef, Response
+from time import time
+from aiohttp.web import (
+	Application, RouteTableDef, Response, json_response,
+)
 from .http_store import http_store
 from .cors import cors_factory
 
@@ -25,6 +28,18 @@ async def index(request):
 		content_type='text/html',
 		text=path.read_text(),
 	)
+
+
+@routes.post('/timesync')
+async def timesync(request):
+	body = await request.json()
+	id = body['id']
+	now = time() * 1000.0
+	return json_response({
+		'jsonrpc': '2.0',
+		'id': id,
+		'result': now,
+	})
 
 
 routes.static('/js', str(Path(__file__).with_name('html') / 'js'))
