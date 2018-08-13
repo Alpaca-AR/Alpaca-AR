@@ -3,18 +3,18 @@
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "Mixed Reality",
-  "web_accessible_resources": ["nps.js", "three.js", "alpaca.js"],
+  "web_accessible_resources": ["three.js", "alpaca.js"],
   "background": {
     "scripts": ["google-books-background.js"],
     "persistent": true
   },
   "content_scripts": [
     {
-      "js": ["inject-nps.js"],
+      "js": ["three.js", "nps.js"],
       "matches": ["https://science.nature.nps.gov/parks/grsm/species/"]
     },
     {
-      "js": ["inject-nps.js"],
+      "js": ["nps.js"],
       "matches": ["http://auxiliarymaya.nomads.utk.edu:8080/"]
     },
     {

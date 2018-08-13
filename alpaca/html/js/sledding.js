@@ -1,3 +1,6 @@
+const host = navigator.userAgent.includes('X11') ? "accona.eecs.utk.edu:8800" : "accona.eecs.utk.edu:8599";
+Alpaca.configure({ host });
+
 let racers = [
   {
     name: "Luge",
@@ -31,11 +34,11 @@ let racers = [
     name: "Cross-country skier",
     mph: 17.1
   },
-/*  {
-    name: "Curler",
-    mph: 11.0
-  }
-*/
+  /*  {
+      name: "Curler",
+      mph: 11.0
+    }
+  */
 ];
 
 let snowScene = new THREE.Scene(),
@@ -44,7 +47,27 @@ let snowScene = new THREE.Scene(),
   axesHelper = new THREE.AxesHelper();
 window.scene.add(trackGroup, racerGroup, axesHelper);
 
-let size = 0.5;
+let size = 0.5,
+  textureLoader = new THREE.TextureLoader(),
+  loadTexture = src => {
+    let _resolve, _reject;
+    const promise = new Promise((resolve, reject) => {
+      _resolve = resolve;
+      _reject = reject;
+    });
+    const texture = textureLoader.load(
+      src,
+      (...args) => {
+        if (_resolve) _resolve(...args);
+      },
+      undefined,
+      (...args) => {
+        if (_reject) _reject(...args);
+      }
+    );
+
+    return { promise, texture };
+  }
 
 let groundGeometry = new THREE.PlaneBufferGeometry(size * 2, size * 4),
   groundMaterial = new THREE.MeshBasicMaterial({
@@ -63,10 +86,10 @@ let x = -0.05,
   racersLeft = 0;
 for (let racer of racers) {
   let racerGeometry = new THREE.BoxBufferGeometry(
-      size / 20,
-      size / 10,
-      size / 20
-    ),
+    size / 20,
+    size / 10,
+    size / 20
+  ),
     racerMaterial = new THREE.MeshBasicMaterial({
       color: 0x000099
     }),
@@ -81,8 +104,24 @@ for (let racer of racers) {
 racerGroup.rotation.set(0.5 * Math.PI, 0, 0, "XYZ");
 racerGroup.updateMatrixWorld();
 
+let promises = [];
+let poles = loadTexture('../img/checkerboard.jpg'),
+  start = loadTexture('../img/start.jpg'),
+  finish = loadTexture('../img/finish.jpg'),
+  snow = loadTexture('../img/snow.jpg');
+promises.push(poles.promise, start.promise, finish.promise, snow.promise);
+
+scene.background = snow.texture;
+
+poles.texture.wrapS = THREE.RepeatWrapping;
+poles.texture.wrapT = THREE.RepeatWrapping;
+poles.texture.repeat.set(3, 3);
+
+start.texture.flipY = true;
+finish.texture.flipY = true;
+
 let poleGeometry = new THREE.CylinderGeometry(0.025, 0.05, 0.25),
-  poleMaterial = new THREE.MeshBasicMaterial({ color: 0xb20000 }),
+  poleMaterial = new THREE.MeshBasicMaterial({ map: poles.texture, side: THREE.DoubleSide, color: 0xffffff }),
   poleMesh = new THREE.Mesh(poleGeometry, poleMaterial);
 poleMesh.rotation.set(-0.5 * Math.PI, 0, 0, "XYZ");
 
@@ -102,24 +141,32 @@ let finishLeftPoleMesh = poleMesh.clone();
 finishLeftPoleMesh.position.set(-0.15, -4 * size + size / 5, -0.125);
 finishLeftPoleMesh.updateMatrixWorld();
 
-let bannerGeometry = new THREE.BoxBufferGeometry(0.3, 0.01, size / 10),
-  bannerMaterial = new THREE.MeshBasicMaterial({
+let startBannerGeometry = new THREE.BoxBufferGeometry(0.3, 0.01, size / 10),
+  startBannerMaterial = new THREE.MeshBasicMaterial({
+    map: start.texture,
     color: 0xf8f8ff
   }),
-  bannerMesh = new THREE.Mesh(bannerGeometry, bannerMaterial);
+  startBannerMesh = new THREE.Mesh(startBannerGeometry, startBannerMaterial);
 
-let startBannerMesh = bannerMesh.clone();
+startBannerMesh.scale.set(-1, -1, 1);
 startBannerMesh.position.set(0, -size / 5, -0.2499 + size / 20);
 startBannerMesh.updateMatrixWorld();
 
-let finishBannerMesh = bannerMesh.clone();
+let finishBannerGeometry = new THREE.BoxBufferGeometry(0.3, 0.01, size / 10),
+  finishBannerMaterial = new THREE.MeshBasicMaterial({
+    map: finish.texture,
+    color: 0xf8f8ff
+  }),
+  finishBannerMesh = new THREE.Mesh(finishBannerGeometry, finishBannerMaterial);
+
+finishBannerMesh.scale.set(-1, -1, 1);
 finishBannerMesh.position.set(0, -4 * size + size / 5, -0.2499 + size / 20);
 finishBannerMesh.updateMatrixWorld();
 
 let barrierGeometry = new THREE.PlaneBufferGeometry(
-    0.05,
-    4 * size - (2 * size) / 5
-  ),
+  0.05,
+  4 * size - (2 * size) / 5
+),
   barrierMaterial = new THREE.MeshBasicMaterial({ color: 0x990000, side: THREE.DoubleSide }),
   barrierMesh = new THREE.Mesh(barrierGeometry, barrierMaterial);
 barrierMesh.rotation.set(0, Math.PI * 0.5, 0, "XYZ");
@@ -143,20 +190,17 @@ trackGroup.add(
   leftBarrierMesh
 );
 
+Promise.all(promises).catch(d => console.error(d));
+
 updateScene();
 setTimeout(() => requestAnimationFrame(step), 2000); //used to see them move during testing
 
 async function updateScene() {
-  fetch("http://accona.eecs.utk.edu:8800/store/alpaca/index.json", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(window.scene.toJSON())
-  })
+  Alpaca.update("application/json", window.scene, 'alpaca', 'index.json')
     .then(response => response.json())
     .catch(err => console.error("Fetch Error =\n", err));
-  if (racersLeft > 0) setTimeout(updateScene, 1000/60);
+
+  if (racersLeft > 0) setTimeout(updateScene, 1000 / 60);
 }
 
 function step() {
@@ -174,5 +218,5 @@ function step() {
     if (stillRacing) racerCount += 1;
   }
   racersLeft = racerCount;
-  (racersLeft > 0) ? requestAnimationFrame(step) : setTimeout(updateScene, 1000/60);
+  (racersLeft > 0) ? requestAnimationFrame(step) : setTimeout(updateScene, 1000 / 60);
 }

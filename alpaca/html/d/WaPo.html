@@ -196,6 +196,7 @@ function step(timestamp) {
 
 requestAnimationFrame(step);
 
+document.body.appendChild(document.createElement('script')).src = "/js/alpaca.js";
 document.body.appendChild(document.createElement('script')).src = "/js/sledding.js";
 
 })();
