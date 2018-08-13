@@ -153,10 +153,9 @@ const controls = do {
                 addTouchControls();
                 controls;
         } else {
-								addTouchControls();
-                //const controls = new THREE.OrbitControls(camera);
-                //patchControls(controls);
-                //controls;
+								const controls = new THREE.OrbitControls(camera);
+                patchControls(controls);
+                controls;
         }
 };
 
