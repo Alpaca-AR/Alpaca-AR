@@ -1,3 +1,5 @@
+(async () => {
+
 const host = navigator.userAgent.includes('X11') ? "accona.eecs.utk.edu:8800" : "accona.eecs.utk.edu:8599";
 Alpaca.configure({ host });
 
@@ -67,12 +69,44 @@ let size = 0.5,
     );
 
     return { promise, texture };
-  }
+  },
+  objLoader = new THREE.OBJLoader2(),
+  loadObj = (src) => {
+    let _resolve, _reject;
+    const promise = new Promise((resolve, reject) => {
+      _resolve = resolve;
+      _reject = reject;
+    });
+    const onLoad = (...args) => {
+      console.log('load', args);
+      if (_resolve) _resolve(...args);
+      else setTimeout(() => onLoad(...args), 50);
+    };
+    const onError = (...args) => {
+      if (_reject) _reject(...args);
+      else setTimeout(() => onError(...args), 50);
+    };
+    const obj = objLoader.load(
+      src,
+      onLoad,
+      undefined,
+      onError
+    );
+    return promise;
+  };
+
+let promises = [];
+let poles = loadTexture('../img/checkerboard.jpg'),
+  start = loadTexture('../img/start.jpg'),
+  finish = loadTexture('../img/finish.jpg'),
+  snow = loadTexture('../img/snow.jpg'),
+  snowFlat = loadTexture('../img/snow-flat.jpg');
+promises.push(poles.promise, start.promise, finish.promise, snow.promise, snowFlat.promise);
 
 let groundGeometry = new THREE.PlaneBufferGeometry(size * 2, size * 4),
   groundMaterial = new THREE.MeshBasicMaterial({
-    color: 0xb8b8b8,
-    side: THREE.DoubleSide
+    map: snowFlat.texture,
+    side: THREE.DoubleSide,
   }),
   groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
 
@@ -84,16 +118,9 @@ trackGroup.add(groundMesh);
 
 let x = -0.05,
   racersLeft = 0;
+const racerMeshBase = (await loadObj('/obj/person.obj')).detail.loaderRootNode;
 for (let racer of racers) {
-  let racerGeometry = new THREE.BoxBufferGeometry(
-    size / 20,
-    size / 10,
-    size / 20
-  ),
-    racerMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000099
-    }),
-    racerMesh = new THREE.Mesh(racerGeometry, racerMaterial);
+  const racerMesh = racerMeshBase.clone();
   racerMesh.position.set(x, -size / 10, -size / 40);
   racerMesh.updateMatrixWorld();
   racerMesh.name = racer.name + ' ' + racer.mph + ' true';
@@ -104,14 +131,7 @@ for (let racer of racers) {
 racerGroup.rotation.set(0.5 * Math.PI, 0, 0, "XYZ");
 racerGroup.updateMatrixWorld();
 
-let promises = [];
-let poles = loadTexture('../img/checkerboard.jpg'),
-  start = loadTexture('../img/start.jpg'),
-  finish = loadTexture('../img/finish.jpg'),
-  snow = loadTexture('../img/snow.jpg');
-promises.push(poles.promise, start.promise, finish.promise, snow.promise);
-
-scene.background = snow.texture;
+//scene.background = snow.texture;
 
 poles.texture.wrapS = THREE.RepeatWrapping;
 poles.texture.wrapT = THREE.RepeatWrapping;
@@ -196,9 +216,20 @@ updateScene();
 setTimeout(() => requestAnimationFrame(step), 2000); //used to see them move during testing
 
 async function updateScene() {
-  Alpaca.update("application/json", window.scene, 'alpaca', 'index.json')
-    .then(response => response.json())
-    .catch(err => console.error("Fetch Error =\n", err));
+  const scene = window.scene;
+  const prevScene = window.prevScene;
+  window.prevScene = scene;
+  
+  if (!prevScene) {
+    Alpaca.update("application/json", JSON.stringify(scene), 'alpaca', 'index.json')
+      .then(response => response.json())
+      .catch(err => console.error("Fetch Error =\n", err));
+  } else {
+    const patch = jiff.diff(prevScene, scene);
+    Alpaca.patch("application/json", JSON.stringify(patch), 'alpaca', 'index.json')
+      .then(response => response.json())
+      .catch(err => console.error("Fetch Error =\n", err));
+  }
 
   if (racersLeft > 0) setTimeout(updateScene, 1000 / 60);
 }
@@ -220,3 +251,5 @@ function step() {
   racersLeft = racerCount;
   (racersLeft > 0) ? requestAnimationFrame(step) : setTimeout(updateScene, 1000 / 60);
 }
+
+})();

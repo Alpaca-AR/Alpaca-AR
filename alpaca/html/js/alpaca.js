@@ -177,15 +177,11 @@ var Alpaca = (function() {
    * @return {Object} A fetch promise
    */
   var update = async function(contentType, body, namespace, name) {
-    body = checkType(body, "body", "object");
-    let json, jsonString;
-    try {
-      json = body.toJSON();
-      jsonString = JSON.stringify(json);
-    } catch (e) {
-      throw new Error(e);
-    }
-    return makeRequest("PUT", contentType, jsonString, namespace, name);
+    return makeRequest("PUT", contentType, body, namespace, name);
+  };
+  
+  var patch = async function(contentType, body, namespace, name) {
+    return makeRequest("PATCH", contentType, body, namespace, name);
   };
 
   return {

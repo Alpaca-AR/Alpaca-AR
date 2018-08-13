@@ -20,7 +20,7 @@
 	display: none !important;
 }
 </style>
-<body>
+<body class="hide-ui">
 <div id="app">
 	<div id="canvas"></div>
 </div>
@@ -318,7 +318,9 @@ const p3 = do {
 	panel;
 };
 
-Alpaca.configure({ host: "accona.eecs.utk.edu:8599", prefix: "/store"});
+Alpaca.configure({
+	host: navigator.userAgent.includes('X11') ? 'accona.eecs.utk.edu:8800' : "accona.eecs.utk.edu:8599",
+});
 
 const initial = await Alpaca.load(contentType, namespace, name).then(res => res.json());
 processScene(initial);
