@@ -153,9 +153,10 @@ const controls = do {
                 addTouchControls();
                 controls;
         } else {
-                const controls = new THREE.OrbitControls(camera);
-                patchControls(controls);
-                controls;
+								addTouchControls();
+                //const controls = new THREE.OrbitControls(camera);
+                //patchControls(controls);
+                //controls;
         }
 };
 
@@ -191,16 +192,19 @@ function addTouchControls() {
     raycaster.setFromCamera(mouse, camera); 
     let selected = raycaster.intersectObjects(alpacaObjects.children, true); 
     if (typeof selected !== 'undefined') { 
-      let changed = false; 
+      let found = false, changed = false; 
       for (let i = 0, n = selected.length; i < n; i++) { 
         let transformed = selected[i].object.userData.canBeTransformed; 
         if (typeof transformed === 'undefined' || transformed === true) { 
-          selectedObject = selected[i].object; 
-          changed = true; 
+					if (selected[i].object !== selectedObject) changed = true;
+					selectedObject = selected[i].object; 
+					found = true;
           break; 
         } 
       } 
-      if (!changed) selectedObject = alpacaObjects; 
+			if (!found) selectedObject = alpacaObjects; 
+			if (!changed) console.log('You selected the same object');
+			/* selection didn't change so do something */ 
     } 
     opacityChange(selectedObject, 0.8); 
     setTimeout(() => opacityChange(selectedObject, 1), 100); 
@@ -391,7 +395,7 @@ async function render() {
 		view.render();
 		camera.updateProjectionMatrix();
 	
-		controls.update();
+		//controls.update();
 	}
 
 	renderer.clearDepth();
