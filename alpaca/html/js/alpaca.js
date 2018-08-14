@@ -76,6 +76,23 @@ var Alpaca = (function() {
     return fetch(`http://${hostname}/${prefix}/${namespace}/${name}`, options);
   };
 
+  /**
+   * Add Listener to Object
+   * 
+   * Adds a listener to an object that when triggered,
+   *  executres an event on the desktop
+   * 
+   * @access public
+   * 
+   * @memberof Alpaca
+   * 
+   * @param {String}   type        The type of event (press, tap, pan, etc)
+   * @param {Object}   threeObject The Three.js object that will trigger the event
+   * @param {Function} callback    The function to be called when the event occurs
+   * @param {String}   namespace   The namespace the object resides in on the store
+   * 
+   * @return {Object} A fetch promise
+   */
   var addEventListener = async function(type, threeObject, callback, namespace) {
     type = checkType(type, "type", "string");
     threeObject = checkType(threeObject, "threeObject", "object");
@@ -85,9 +102,9 @@ var Alpaca = (function() {
     let promise = makeRequest("POST", 'application/javascript', {}, namespace);
 
     await promise
-      .then(d => d.json())
-      .then(d => {
-        let name = d.data.url.split('/')[3];
+      .then(resp => resp.json())
+      .then(resp => {
+        let name = resp.data.url.split('/')[3];
         threeObject.userData.type = type;
         threeObject.userData.name = name;
         threeObject.userData.namespace = namespace;
@@ -150,8 +167,8 @@ var Alpaca = (function() {
    *
    * @memberof Alpaca
    *
-   * @param {String} namespace
-   * @param {String} name
+   * @param {String}   namespace
+   * @param {String}   name
    * @param {function} onMessage
    * 
    * @return {Object} A fetch promise

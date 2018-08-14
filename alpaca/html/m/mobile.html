@@ -163,10 +163,9 @@ const controls = do {
                 addTouchControls();
                 controls;
         } else {
-          addTouchControls();
-					//const controls = new THREE.OrbitControls(camera);
-          //patchControls(controls);
-          //controls;
+					const controls = new THREE.OrbitControls(camera);
+          patchControls(controls);
+          controls;
         }
 };
 
@@ -360,7 +359,6 @@ function processScene(json) {
 function updateScene(object) {
 	clear(alpacaObjects);
   alpacaObjects.add(object);
-  console.log(alpacaObjects);
 };
 
 // Re-render when the user rotates the scene.
