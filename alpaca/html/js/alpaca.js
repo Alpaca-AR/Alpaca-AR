@@ -1,6 +1,7 @@
 var Alpaca = (function() {
   var hostname = window.location.host,
-    prefix = "/store";
+    prefix = "store",
+    listeners = [];
 
   /**
    * Type Checker.
@@ -67,13 +68,35 @@ var Alpaca = (function() {
       "Content-Type": checkType(contentType, "contentType", "string")
     };
     if (typeof body !== "undefined")
-      options.body = checkType(body, "body", "string");
+      options.body = body;
 
     namespace = checkType(namespace, "namespace", "string");
     name = typeof name !== "undefined" ? checkType(name, "name", "string") : "";
 
-    return fetch(`http://${hostname}${prefix}/${namespace}/${name}`, options);
+    return fetch(`http://${hostname}/${prefix}/${namespace}/${name}`, options);
   };
+
+  var addEventListener = async function(type, threeObject, callback, namespace) {
+    type = checkType(type, "type", "string");
+    threeObject = checkType(threeObject, "threeObject", "object");
+    callback = checkType(callback, "callback", "function");
+    namespace = checkType(namespace, "namespace", "string");
+
+    let promise = makeRequest("POST", 'application/javascript', {}, namespace);
+
+    await promise
+      .then(d => d.json())
+      .then(d => {
+        let name = d.data.url.split('/')[3];
+        threeObject.userData.type = type;
+        threeObject.userData.name = name;
+        threeObject.userData.namespace = namespace;
+        this.listen(namespace, name, callback);
+      });
+
+    return promise;
+  }
+
 
   /**
    * Configure Alpaca
@@ -130,10 +153,12 @@ var Alpaca = (function() {
    * @param {String} namespace
    * @param {String} name
    * @param {function} onMessage
+   * 
+   * @return {Object} A fetch promise
    */
   var listen = async function(namespace, name, onMessage) {
     return await new Promise(resolve => {
-      let ws = new WebSocket(`ws://${hostname}${prefix}/${namespace}/${name}`);
+      let ws = new WebSocket(`ws://${hostname}/${prefix}/${namespace}/${name}`);
       ws.onmessage = onMessage;
       ws.onopen = () => resolve(ws);
       ws.onerror = () => reject(ws);
@@ -181,10 +206,11 @@ var Alpaca = (function() {
   };
 
   return {
-    configure: configure,
-    create: create,
-    listen: listen,
-    load: load,
-    update: update
+    addEventListener,
+    configure,
+    create,
+    listen,
+    load,
+    update
   };
 })();

@@ -1,7 +1,11 @@
-const host = navigator.userAgent.includes('X11') ? "accona.eecs.utk.edu:8800" : "accona.eecs.utk.edu:8599",
+const host = navigator.userAgent.includes("X11")
+    ? "accona.eecs.utk.edu:8800"
+    : "accona.eecs.utk.edu:8599",
   bookPageSelector = ".pageImageDisplay > div:nth-child(3) > img",
   watchDefaultConfig = { attributes: true, childList: true, subtree: true },
   viewport = document.querySelector("#viewport");
+
+let leftArrow, rightArrow;
 
 let port = chrome.runtime.connect();
 
@@ -64,7 +68,44 @@ function initGoogleBooks() {
 
     clearInterval(id);
 
+    const arrowMaterial = new THREE.MeshNormalMaterial({
+        side: THREE.DoubleSide
+      }),
+      rightArrowGeometry = new THREE.Geometry(),
+      leftArrowGeometry = new THREE.Geometry(),
+      r1 = new THREE.Vector3(0.5, 0, 0),
+      r2 = new THREE.Vector3(1, 0.5, 0),
+      r3 = new THREE.Vector3(0.5, 1, 0),
+      l1 = new THREE.Vector3(-0.5, 0, 0),
+      l2 = new THREE.Vector3(-1, 0.5, 0),
+      l3 = new THREE.Vector3(-0.5, 1, 0);
+
+    rightArrowGeometry.vertices.push(r1, r2, r3);
+    rightArrowGeometry.faces.push(new THREE.Face3(0, 1, 2));
+    rightArrowGeometry.computeFaceNormals();
+    rightArrow = new THREE.Mesh(rightArrowGeometry, arrowMaterial);
+    rightArrow.scale.set(0.1, 0.1, 1);
+
+    leftArrowGeometry.vertices.push(l1, l2, l3);
+    leftArrowGeometry.faces.push(new THREE.Face3(0, 1, 2));
+    leftArrowGeometry.computeFaceNormals();
+    leftArrow = new THREE.Mesh(leftArrowGeometry, arrowMaterial);
+    leftArrow.scale.set(0.1, 0.1, 1);
+
     Alpaca.configure({ host, prefix: "store" });
+    Alpaca.addEventListener(
+      "press",
+      leftArrow,
+      () => click(document.getElementById(':g')),
+      "alpaca"
+    );
+    Alpaca.addEventListener(
+      "press",
+      rightArrow,
+      () => click(document.getElementById(':h')),
+      "alpaca"
+    );
+
     bookGroup = new THREE.Group();
     bookGroupParent = new THREE.Group();
     watch(viewport, bookWatcher);
@@ -72,10 +113,24 @@ function initGoogleBooks() {
   }, 100);
 }
 
+function click(element) {
+  event = document.createEvent("MouseEvents");
+  event.initEvent("mousedown", true, false);
+  element.dispatchEvent(event, true);
+  event = document.createEvent("MouseEvents");
+  event.initEvent("mouseup", true, false);
+  element.dispatchEvent(event, true);
+}
+
 async function updateStore() {
   let bookGroupJSON = JSON.stringify(bookGroupParent.toJSON());
   port.postMessage({ setStorage: bookGroupJSON });
-  return Alpaca.update("application/json", bookGroupParent, 'alpaca', 'index.json');
+  return Alpaca.update(
+    "application/json",
+    bookGroupJSON,
+    "alpaca",
+    "index.json"
+  );
 }
 
 let objectLoader = new THREE.ObjectLoader();
@@ -114,6 +169,7 @@ async function updateBooks() {
   }
   range = top - bottom;
 
+  let right = 0;
   for (let image of images) {
     let parent = image.parentNode.parentNode,
       width = parseInt(parent.style.width),
@@ -136,15 +192,28 @@ async function updateBooks() {
 
     const mesh = new THREE.Mesh(geometry, material);
 
+    if ((width * scale) / 2 > right) right = (width * scale) / 2;
     mesh.position.set(left * scale, (bottom - parentTop + range) * scale, 0);
     mesh.updateMatrixWorld();
 
     bookGroup.add(mesh);
   }
+
+  let tempRightArrow = rightArrow.clone(),
+    tempLeftArrow = leftArrow.clone();
+
+  tempRightArrow.position.setX(right);
+  tempLeftArrow.position.setX(-right);
+
+  bookGroup.add(tempRightArrow, tempLeftArrow);
+
   bookGroup.name = location.href;
 
   for (let i = 0, n = bookGroupParent.children.length; i < n; i++) {
-    if (bookGroupParent.children[i].name == location.href)
+    if (
+      typeof bookGroupParent.children[i] !== "undefined" &&
+      bookGroupParent.children[i].name == location.href
+    )
       bookGroupParent.remove(bookGroupParent.children[i]);
   }
 
