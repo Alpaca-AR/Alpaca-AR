@@ -157,7 +157,7 @@ async def main(host, process, docker):
 		synchronized = await SynchronizedTime.sync(session, url)
 		
 		while True:
-			await sleep(1.0)
+			await sleep(0.1)
 			now = synchronized.now()
 			
 			for watch in watchers:
