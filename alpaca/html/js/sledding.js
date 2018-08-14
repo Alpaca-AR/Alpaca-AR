@@ -98,10 +98,9 @@ let size = 0.5,
 let promises = [];
 let poles = loadTexture('../img/checkerboard.jpg'),
   start = loadTexture('../img/start.jpg'),
-  finish = loadTexture('../img/finish.jpg'),
-  snow = loadTexture('../img/snow.jpg'),
+  finish = loadTexture('../img/finish.jpg');
   snowFlat = loadTexture('../img/snow-flat.jpg');
-promises.push(poles.promise, start.promise, finish.promise, snow.promise, snowFlat.promise);
+promises.push(poles.promise, start.promise, finish.promise, snowFlat.promise);
 
 let groundGeometry = new THREE.PlaneBufferGeometry(size * 2, size * 4),
   groundMaterial = new THREE.MeshBasicMaterial({
@@ -210,26 +209,15 @@ trackGroup.add(
   leftBarrierMesh
 );
 
-Promise.all(promises).catch(d => console.error(d));
+await Promise.all(promises).catch(d => console.error(d));
 
 updateScene();
 setTimeout(() => requestAnimationFrame(step), 2000); //used to see them move during testing
 
 async function updateScene() {
-  const scene = window.scene;
-  const prevScene = window.prevScene;
-  window.prevScene = scene;
-  
-  if (!prevScene) {
-    Alpaca.update("application/json", JSON.stringify(scene), 'alpaca', 'index.json')
-      .then(response => response.json())
-      .catch(err => console.error("Fetch Error =\n", err));
-  } else {
-    const patch = jiff.diff(prevScene, scene);
-    Alpaca.patch("application/json", JSON.stringify(patch), 'alpaca', 'index.json')
-      .then(response => response.json())
-      .catch(err => console.error("Fetch Error =\n", err));
-  }
+  Alpaca.update("application/json", JSON.stringify(window.scene.toJSON()), 'alpaca', 'index.json')
+    .then(response => response.json())
+    .catch(err => console.error("Fetch Error =\n", err));
 
   if (racersLeft > 0) setTimeout(updateScene, 1000 / 60);
 }

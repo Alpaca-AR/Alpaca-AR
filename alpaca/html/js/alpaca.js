@@ -179,10 +179,6 @@ var Alpaca = (function() {
   var update = async function(contentType, body, namespace, name) {
     return makeRequest("PUT", contentType, body, namespace, name);
   };
-  
-  var patch = async function(contentType, body, namespace, name) {
-    return makeRequest("PATCH", contentType, body, namespace, name);
-  };
 
   return {
     configure: configure,
