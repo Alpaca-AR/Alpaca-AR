@@ -319,7 +319,6 @@ const p3 = do {
 };
 
 Alpaca.configure({
-	host: navigator.userAgent.includes('X11') ? 'accona.eecs.utk.edu:8800' : "accona.eecs.utk.edu:8599",
 });
 
 const initial = await Alpaca.load(contentType, namespace, name).then(res => res.json());
