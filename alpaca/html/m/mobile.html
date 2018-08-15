@@ -16,7 +16,7 @@
 
 .hide-ui .toolbar,
 .hide-ui #theLogger,
-.hide-ui canvas[width="80"] {
+.hide-ui .stats {
 	display: none !important;
 }
 </style>
@@ -269,6 +269,7 @@ const p1 = do {
 		stats.showPanel(0);
 		stats.dom.style.top = `${0 * 48}px`;
 		document.body.appendChild(stats.dom);
+		stats.dom.classList.add('stats');
 		stats1 = stats;
 		stats;
 	};
@@ -290,6 +291,7 @@ const p2 = do {
 		stats.showPanel(2);
 		stats.dom.style.top = `${1 * 48}px`;
 		document.body.appendChild(stats.dom);
+		stats.dom.classList.add('stats');
 		stats2 = stats;
 		stats;
 	};
@@ -311,6 +313,7 @@ const p3 = do {
 		stats.showPanel(1);
 		stats.dom.style.top = `${2 * 48}px`;
 		document.body.appendChild(stats.dom);
+		stats.dom.classList.add('stats');
 		stats3 = stats;
 		stats;
 	};
