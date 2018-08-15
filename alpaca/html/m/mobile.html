@@ -132,7 +132,7 @@ const camera = do {
                 const zNear = 0.1,
                       zFar = 1000,
                       camera = new THREE.PerspectiveCamera(fov, aspect, zNear, zFar);
-                camera.position.set(0, 0.1, 0.1);
+                camera.position.set(0, 0.1, 0.3);
                 camera;
         }
 };
@@ -163,17 +163,22 @@ const controls = do {
                 addTouchControls();
                 controls;
         } else {
-								const controls = new THREE.OrbitControls(camera);
-                patchControls(controls);
-                controls;
+					const controls = new THREE.OrbitControls(camera);
+          patchControls(controls);
+          controls;
         }
 };
 
-function addTouchControls() { 
+function addTouchControls() {
+  let trigger = function (data) {
+    Alpaca.update('application/javascript', {}, data.namespace, data.name);
+  }
+
   let canvas = document.getElementsByTagName("canvas")[0], 
     hammer = new Hammer(canvas), 
     selectedObject = alpacaObjects,
-    initialScale = null;
+    initialScale = null,
+    allowEvents = false;
  
   hammer.get('pinch').set({ enable: true }); 
   hammer.on('pinchstart', (ev) => {
@@ -195,25 +200,27 @@ function addTouchControls() {
  
   let raycaster = new THREE.Raycaster(), 
     mouse = new THREE.Vector2(); 
-  hammer.on('tap', ev => { 
-    mouse.x = (ev.center.x / window.innerWidth) * 2 - 1; 
-    mouse.y = - (ev.center.y / window.innerHeight) * 2 + 1; 
-    raycaster.setFromCamera(mouse, camera); 
-    let selected = raycaster.intersectObjects(alpacaObjects.children, true); 
-    if (typeof selected !== 'undefined') { 
-      let found = false, changed = false; 
-      for (let i = 0, n = selected.length; i < n; i++) { 
-        let transformed = selected[i].object.userData.canBeTransformed; 
-        if (typeof transformed === 'undefined' || transformed === true) { 
+  hammer.on('tap', ev => {
+    if (allowEvents && selectedObject.userData.type == 'tap')
+      return trigger(selectedObject.userData);
+    
+    mouse.x = (ev.center.x / window.innerWidth) * 2 - 1;
+    mouse.y = - (ev.center.y / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    let selected = raycaster.intersectObjects(alpacaObjects.children, true);
+    if (typeof selected !== 'undefined') {
+      let found = false, changed = false;
+      for (let i = 0, n = selected.length; i < n; i++) {
+        let transformed = selected[i].object.userData.canBeTransformed;
+        if (typeof transformed === 'undefined' || transformed === true) {
 					if (selected[i].object !== selectedObject) changed = true;
-					selectedObject = selected[i].object; 
+					selectedObject = selected[i].object;
 					found = true;
-          break; 
-        } 
-      } 
-			if (!found) selectedObject = alpacaObjects; 
-			if (!changed) console.log('You selected the same object');
-			/* selection didn't change so do something */ 
+          break;
+        }
+      }
+      if (!found) selectedObject = alpacaObjects;
+      allowEvents = !changed;
     } 
     opacityChange(selectedObject, 0.8); 
     setTimeout(() => opacityChange(selectedObject, 1), 100); 
@@ -227,6 +234,9 @@ function addTouchControls() {
   } 
  
   hammer.on('press', ev => { 
+    if (allowEvents && selectedObject.userData.type == 'press')
+      return trigger(selectedObject.userData);
+
     selectedObject.position.copy(camera.position);
     selectedObject.rotation.copy(camera.rotation);
   }); 
@@ -351,7 +361,7 @@ function processScene(json) {
 
 function updateScene(object) {
 	clear(alpacaObjects);
-	alpacaObjects.add(object);
+  alpacaObjects.add(object);
 };
 
 // Re-render when the user rotates the scene.
@@ -422,7 +432,7 @@ async function render() {
 		view.render();
 		camera.updateProjectionMatrix();
 	
-		controls.update();
+		//controls.update();
 	}
 
 	renderer.clearDepth();
