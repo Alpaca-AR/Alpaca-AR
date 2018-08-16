@@ -353,7 +353,7 @@ const onMessage = e => {
   const json = JSON.parse(e.data);
   processScene(json);
 }
-Alpaca.listenToWebSocket(namespace, name, onMessage);
+Alpaca.listen(namespace, name, onMessage);
 
 function processScene(json) {
 	objectLoader.parse(json, updateScene);
