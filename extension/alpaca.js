@@ -1,12 +1,11 @@
 var Alpaca = (function() {
   var hostname = window.location.host,
-    prefix = "store",
-    listeners = [];
+    prefix = "store";
 
   /**
    * Type Checker.
    *
-   * Checkes the type of passed varaible if it's expected.
+   * Checks the type of passed variable if it's expected.
    *
    * @access private
    *
@@ -47,7 +46,7 @@ var Alpaca = (function() {
   /**
    * Fetch Data
    *
-   * Sends a request to the store to get/receieve data
+   * Sends a request to the store to get/receive data
    *
    * @access private
    *
@@ -80,7 +79,7 @@ var Alpaca = (function() {
    * Add Listener to Object
    * 
    * Adds a listener to an object that when triggered,
-   *  executres an event on the desktop
+   *  executes an event on the desktop
    * 
    * @access public
    * 
@@ -108,7 +107,7 @@ var Alpaca = (function() {
         threeObject.userData.type = type;
         threeObject.userData.name = name;
         threeObject.userData.namespace = namespace;
-        this.listen(namespace, name, callback);
+        this.listenToWebSocket(namespace, name, callback);
       });
 
     return promise;
@@ -157,6 +156,33 @@ var Alpaca = (function() {
     return makeRequest("POST", contentType, body, namespace);
   };
 
+
+  let watchDefaultConfig = { attributes: true, childList: true, subtree: true };
+  var listen = async function(element, callback, config = watchDefaultConfig, delay = 1000) {
+    const func = callback.bind(null, element),
+      wait = delay,
+      immediate = false,
+      debounced = debounce(func, wait, immediate),
+      observer = new MutationObserver(debounced);
+    observer.observe(element, config);
+    return observer;
+  }
+
+  var debounce = function(func, wait, immediate) {
+    let timeout;
+    return function() {
+      let context = this,
+        args = arguments;
+      clearTimeout(timeout);
+      if (immediate && !timeout) func.apply(context, args);
+      timeout = setTimeout(function() {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      }, wait);
+    };
+  }
+
+
   /**
    * Listen For Changes
    *
@@ -173,7 +199,7 @@ var Alpaca = (function() {
    * 
    * @return {Object} A fetch promise
    */
-  var listen = async function(namespace, name, onMessage) {
+  var listenToWebSocket = async function(namespace, name, onMessage) {
     return await new Promise(resolve => {
       let ws = new WebSocket(`ws://${hostname}/${prefix}/${namespace}/${name}`);
       ws.onmessage = onMessage;
@@ -227,6 +253,7 @@ var Alpaca = (function() {
     configure,
     create,
     listen,
+    listenToWebSocket,
     load,
     update
   };
