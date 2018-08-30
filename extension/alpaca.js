@@ -100,7 +100,7 @@ var Alpaca = (function() {
       ["a", "e", "i", "o", "u"].indexOf(type.charAt(0).toLowerCase()) !== -1
         ? "an"
         : "a";
-    throw new TypeError(`'${name} is not ${article} ${type}`, "alpaca.js");
+    throw new TypeError(`${name} is not ${article} ${type}`, "alpaca.js");
   };
 
   /**
@@ -120,7 +120,12 @@ var Alpaca = (function() {
    *
    * @return {Object} A fetch promise
    */
-  var addEventListener = async function(type, threeObject, callback, namespace) {
+  var addEventListener = async function(
+    type,
+    threeObject,
+    callback,
+    namespace
+  ) {
     type = checkType(type, "type", "string");
     threeObject = checkType(threeObject, "threeObject", "object");
     callback = checkType(callback, "callback", "function");
@@ -265,12 +270,14 @@ var Alpaca = (function() {
     if (!(element instanceof Element))
       throw new TypeError("Element is not an HTML Element.", "alpaca.js");
     callback = checkType(callback, "callback", "function");
-    delay = checkType(delay, "delay", "number") || 250;
-    config = checkType(config, "config", "object") || {
-      attributes: true,
-      childList: true,
-      subtree: true
-    };
+    delay = delay ? checkType(delay, "delay", "number") : 250;
+    config = config
+      ? checkType(config, "config", "object")
+      : {
+          attributes: true,
+          childList: true,
+          subtree: true
+        };
     let observer = new MutationObserver(debounce(callback, delay));
     observer.observe(element, config);
     return observer;

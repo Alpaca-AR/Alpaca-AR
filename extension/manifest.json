@@ -1,45 +1,21 @@
 {
   "name": "Alpaca",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "manifest_version": 2,
   "description": "Mixed Reality",
   "web_accessible_resources": ["three.js", "alpaca.js"],
   "background": {
-    "scripts": ["google-books-background.js"],
+    "scripts": ["background.js"],
     "persistent": true
   },
   "content_scripts": [
     {
-      "js": ["three.js", "nps.js"],
+      "js": ["three.js", "alpaca.js", "nps.js"],
       "matches": ["https://science.nature.nps.gov/parks/grsm/species/"]
-    },
-    {
-      "js": ["nps.js"],
-      "matches": ["http://auxiliarymaya.nomads.utk.edu:8080/"]
-    },
-    {
-      "js": ["inject-youtube.js"],
-      "matches": ["https://youtube.com/*", "https://www.youtube.com/*"]
-    },
-    {
-      "js": ["inject-leaflet.js"],
-      "matches": ["http://alpaca.127.0.0.1.xip.io:8080/leaflet/"]
-    },
-    {
-      "js": ["inject-game.js"],
-      "matches": ["http://game.127.0.0.1.xip.io:8080/game/"]
-    },
-    {
-      "js": ["inject-pdf.js"],
-      "matches": ["http://pdf.127.0.0.1.xip.io:8080/pdf/"]
     },
     {
       "js": ["three.js", "alpaca.js", "google-books.js"],
       "matches": ["https://books.google.com/*"]
-    },
-    {
-      "js": ["inject-nps-local.js"],
-      "matches": ["http://seelab.eecs.utk.edu/species_mapper/full/"]
     }
   ],
   "browser_action": {

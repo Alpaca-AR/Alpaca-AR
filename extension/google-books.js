@@ -2,36 +2,11 @@ const host = navigator.userAgent.includes("X11")
     ? "accona.eecs.utk.edu:8800"
     : "accona.eecs.utk.edu:8599",
   bookPageSelector = ".pageImageDisplay > div:nth-child(3) > img",
-  watchDefaultConfig = { attributes: true, childList: true, subtree: true },
   viewport = document.querySelector("#viewport");
 
 let leftArrow, rightArrow;
 
 let port = chrome.runtime.connect();
-
-function watch(element, callback, config = watchDefaultConfig, delay = 1000) {
-  const func = callback.bind(null, element),
-    wait = delay,
-    immediate = false,
-    debounced = debounce(func, wait, immediate),
-    observer = new MutationObserver(debounced);
-  observer.observe(element, config);
-  return observer;
-}
-
-function debounce(func, wait, immediate) {
-  let timeout;
-  return function() {
-    let context = this,
-      args = arguments;
-    clearTimeout(timeout);
-    if (immediate && !timeout) func.apply(context, args);
-    timeout = setTimeout(function() {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    }, wait);
-  };
-}
 
 document.onreadystatechange = () => {
   if (document.readyState === "complete") initGoogleBooks();
@@ -96,19 +71,19 @@ function initGoogleBooks() {
     Alpaca.addEventListener(
       "press",
       leftArrow,
-      () => click(document.getElementById(':g')),
+      () => click(document.getElementById(":g")),
       "alpaca"
     );
     Alpaca.addEventListener(
       "press",
       rightArrow,
-      () => click(document.getElementById(':h')),
+      () => click(document.getElementById(":h")),
       "alpaca"
     );
 
     bookGroup = new THREE.Group();
     bookGroupParent = new THREE.Group();
-    watch(viewport, bookWatcher);
+    Alpaca.watch(viewport, bookWatcher);
     bookWatcher(viewport);
   }, 100);
 }
@@ -124,7 +99,7 @@ function click(element) {
 
 async function updateStore() {
   let bookGroupJSON = JSON.stringify(bookGroupParent.toJSON());
-  port.postMessage({ setStorage: bookGroupJSON });
+  port.postMessage({ setStorage: bookGroupJSON, key: "books" });
   return Alpaca.update(
     "application/json",
     bookGroupJSON,
@@ -148,7 +123,7 @@ async function bookWatcher() {
     document.querySelector("#viewport").querySelectorAll(bookPageSelector)
   );
   if (images.length == 0) return;
-  port.postMessage({ getStorage: true });
+  port.postMessage({ getStorage: true, key: "books" });
 }
 
 async function updateBooks() {

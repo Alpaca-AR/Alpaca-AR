@@ -60,25 +60,13 @@ function testingHelper(request) {
       let span = document.getElementById("updated");
       span.style.display = "block";
       setTimeout(() => {
-        span.style.diplay = "none";
+        span.style.display = "none";
       }, 10000);
     });
   }
 }
 
 /* testing purposes only */
-function remove(name) {
-  document.getElementById(name).remove();
-}
-
-
-
-
-
-
-
-
-
 
 /* for normal use */
 function getNamespaceList() {

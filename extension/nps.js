@@ -1,33 +1,10 @@
-const url = navigator.userAgent.includes('X11') ? "http://accona.eecs.utk.edu:8800" : "http://accona.eecs.utk.edu:8599",
+const url = navigator.userAgent.includes("X11")
+    ? "http://accona.eecs.utk.edu:8800"
+    : "http://accona.eecs.utk.edu:8599",
   mapSelector =
     ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container:last-child",
   speciesSelector =
-    ".npmap-map .leaflet-pane > .leaflet-tile-pane > .leaflet-layer:nth-child(n+2)",
-  watchDefaultConfig = { attributes: true, childList: true, subtree: true };
-
-function watch(element, callback, config = watchDefaultConfig, delay = 1000) {
-  const func = callback.bind(null, element),
-    wait = delay,
-    immediate = false,
-    debounced = debounce(func, wait, immediate),
-    observer = new MutationObserver(debounced);
-  observer.observe(element, config);
-  return observer;
-}
-
-function debounce(func, wait, immediate) {
-  let timeout;
-  return function() {
-    let context = this,
-      args = arguments;
-    clearTimeout(timeout);
-    if (immediate && !timeout) func.apply(context, args);
-    timeout = setTimeout(function() {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    }, wait);
-  };
-}
+    ".npmap-map .leaflet-pane > .leaflet-tile-pane > .leaflet-layer:nth-child(n+2)";
 
 document.onreadystatechange = () => {
   if (document.readyState === "complete") initNPS();
@@ -91,7 +68,7 @@ function main() {
   (function setSpeciesWatcher() {
     let container = document.querySelector(speciesSelector);
     if (container && !watching) {
-      species = watch(
+      species = Alpaca.watch(
         document.querySelector(".npmap-map .leaflet-tile-pane"),
         speciesWatcher
       );
@@ -111,7 +88,10 @@ function main() {
     setTimeout(setSpeciesWatcher, 250);
   })();
 
-  watch(document.querySelector(".npmap-map .leaflet-tile-pane"), mapWatcher);
+  Alpaca.watch(
+    document.querySelector(".npmap-map .leaflet-tile-pane"),
+    mapWatcher
+  );
 
   let mapLayer = document.querySelector(mapSelector),
     speciesLayer = document.querySelector(speciesSelector);
@@ -156,14 +136,18 @@ async function mapWatcher(element) {
 
     const { promise, texture } = loadTexture(image.src);
     promises.push(promise);
-    
-    const { promise: promise2, texture: texture2 } = loadTexture(image.src.replace(/v4\/[^/]*\//, 'v4/mapbox.terrain-rgb/').replace('.png', '.pngraw'));
+
+    const { promise: promise2, texture: texture2 } = loadTexture(
+      image.src
+        .replace(/v4\/[^/]*\//, "v4/mapbox.terrain-rgb/")
+        .replace(".png", ".pngraw")
+    );
     promises.push(promise2);
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTextureMap: { value: texture },
-        uHeightMap: { value: texture2 },
+        uHeightMap: { value: texture2 }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -201,7 +185,7 @@ async function mapWatcher(element) {
         }
       `,
       transparent: true,
-      side: THREE.DoubleSide,
+      side: THREE.DoubleSide
     });
 
     const mesh = new THREE.Mesh(geometry, material);
@@ -212,10 +196,8 @@ async function mapWatcher(element) {
     mapGroup.add(mesh);
   }
 
-  let error = loadTexture(
-    url + "/img/512x512.png"
-  ),
-    wood = loadTexture(url + '/img/wood.jpg');
+  let error = loadTexture(url + "/img/512x512.png"),
+    wood = loadTexture(url + "/img/wood.jpg");
 
   promises.push(error.promise);
   promises.push(wood.promise);
@@ -244,17 +226,17 @@ async function mapWatcher(element) {
       tiles[currentX + ", " + currentY] !== true
     ) {
       const material = new THREE.MeshBasicMaterial({
-        map: error.texture,
-        color: 0xffffff,
-        side: THREE.DoubleSide
-      }),
+          map: error.texture,
+          color: 0xffffff,
+          side: THREE.DoubleSide
+        }),
         geometry = new THREE.PlaneBufferGeometry(scale, scale);
-  
+
       let errorTile = new THREE.Mesh(geometry, material);
       errorTile.position.set(currentX, currentY, 0.01);
       mapGroup.add(errorTile);
     }
-    
+
     tile.material.map = wood.texture;
     tile.updateMatrixWorld();
     mapGroup.add(tile);
@@ -263,7 +245,9 @@ async function mapWatcher(element) {
   mapGroup.scale.set(0.1, 0.1, 0.1);
   mapGroup.updateMatrixWorld();
 
-  await Promise.all(promises.map(d => d.catch(() => undefined))).catch(e => console.log(e));
+  await Promise.all(promises.map(d => d.catch(() => undefined))).catch(e =>
+    console.log(e)
+  );
 
   for (let i = 0; i < parentGroup.children.length; i++) {
     if (parentGroup.children[i].name === "map")
@@ -292,10 +276,15 @@ async function speciesWatcher() {
       }, 500);
     const promises = [];
     let speciesGroup = new THREE.Group();
-    
+
     const scale = 1,
       segments = 128,
-      geometry = new THREE.PlaneBufferGeometry(scale, scale, segments, segments);
+      geometry = new THREE.PlaneBufferGeometry(
+        scale,
+        scale,
+        segments,
+        segments
+      );
     for (let image of images) {
       if (image.src.startsWith("data")) continue;
       const transform = image.style.transform,
@@ -308,14 +297,18 @@ async function speciesWatcher() {
 
       const { promise, texture } = loadTexture(image.src);
       promises.push(promise);
-    
-    const { promise: promise2, texture: texture2 } = loadTexture(image.src.replace(/v4\/[^/]*\//, 'v4/mapbox.terrain-rgb/').replace('.png', '.pngraw'));
-    promises.push(promise2);
+
+      const { promise: promise2, texture: texture2 } = loadTexture(
+        image.src
+          .replace(/v4\/[^/]*\//, "v4/mapbox.terrain-rgb/")
+          .replace(".png", ".pngraw")
+      );
+      promises.push(promise2);
 
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTextureMap: { value: texture },
-        uHeightMap: { value: texture2 },
+          uHeightMap: { value: texture2 }
         },
         vertexShader: `
           varying vec2 vUv;
@@ -395,7 +388,7 @@ async function speciesWatcher() {
           }
         `,
         transparent: true,
-        side: THREE.DoubleSide,
+        side: THREE.DoubleSide
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -410,7 +403,9 @@ async function speciesWatcher() {
     speciesGroup.position.z = 1.0 /* millimeters */ / 1000.0;
     speciesGroup.updateMatrixWorld();
 
-    await Promise.all(promises.map((d) => d.catch(() => undefined))).catch(e => console.log(e));
+    await Promise.all(promises.map(d => d.catch(() => undefined))).catch(e =>
+      console.log(e)
+    );
 
     speciesGroup.name = "species";
     parentGroup.add(speciesGroup);
