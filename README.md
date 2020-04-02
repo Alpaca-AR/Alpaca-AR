@@ -25,12 +25,12 @@ To install the Alpaca Server, run the following commands to install dependencies
 and start the server.
 
 ```console
-~ $ git clone git@github.com:Alpaca-AR/Alpaca-AR.git ~/Alpaca-AR
-~ $ cd ~/Alpaca-AR
-~/Alpaca-AR/ $ virtualenv -p python3.7 venv
-~/Alpaca-AR/ $ ./venv/bin/pip install -r requirements.txt
-~/Alpaca-AR/ $ ./venv/bin/pip install -e .
-~/Alpaca-AR/ $ ./venv/bin/alpaca --host 0.0.0.0 --port 8123
+~/$ git clone git@github.com:Alpaca-AR/Alpaca-AR.git ~/Alpaca-AR
+~/$ cd ~/Alpaca-AR
+~/Alpaca-AR/$ virtualenv -p python3.7 venv
+~/Alpaca-AR/$ ./venv/bin/pip install -r requirements.txt
+~/Alpaca-AR/$ ./venv/bin/pip install -e .
+~/Alpaca-AR/$ ./venv/bin/alpaca --host 0.0.0.0 --port 8123
 ```
 
 To install the Alpaca Extension into Google Chrome,
@@ -51,7 +51,7 @@ open the WebARonARCore app and navigate to `http://1.2.3.4:8123/m/mobile.html` w
 
 ## Troubleshooting: Alpaca AR Runtime not functioning properly
 
-0. If the page doesn't load at all, the URL may not have been typed in correctly.
+1. If the page doesn't load at all, the URL may not have been typed in correctly.
 It must be `http://1.2.3.4:8123/m/mobile.html` where `1.2.3.4` is the IP address of your laptop.
 0. Alternatively, port `8123` may be blocked by your firewall. On Ubuntu, you might use `sudo ufw allow 8123`.
 0. The laptop may not be accessible from the AR device.
@@ -69,6 +69,4 @@ Registration must be performed every time the web page is refreshed.
 
 An issue can be filed at https://github.com/Alpaca-AR/Alpaca-AR/issues
 and we can help you get it working.
-We will probably have a series of additional tests to run from each device
-and will be integrated into the project
-so it can be made easier for new users.
+We can suggest additional tests to run that can help new users with the project.
