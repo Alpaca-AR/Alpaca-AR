@@ -1,12 +1,16 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3.7
 
 from distutils.core import setup
 from pathlib import Path
 
 setup(
 	name='alpaca',
-	version='1.0',
-	description='Alpaca',
+	version='0.7.0',
+	description=(
+		'Alpaca is a framework to simplify the creation of Augmented '
+		'Reality extensions for web applications, without modifying the '
+		'original web applications'
+	),
 	author='Tanner Hobson',
 	author_email='thobson2@vols.utk.edu',
 	packages=[
@@ -18,7 +22,7 @@ setup(
 	package_data={
 		'alpaca': [
 			'http_store/html/index.html',
-      'html/js/object-store.js'
+			'html/js/object-store.js'
 		],
 	},
 	entry_points={
