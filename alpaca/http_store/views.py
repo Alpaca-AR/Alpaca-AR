@@ -4,6 +4,7 @@
 
 from aiohttp.web import View, json_response, WebSocketResponse, Response
 from uuid import uuid4
+from asyncio import ensure_future
 from .model import Entry
 
 
@@ -114,10 +115,19 @@ class EntryView(View, StoreMixin, NamespaceMixin, EntryMixin):
 
 	async def websocket(self, ws):
 		await ws.prepare(self.request)
+		async def _worker():
+			async for msg in ws:
+				print(repr(msg))
+		
+		future = ensure_future(_worker())
+			
 		async with self.namespace.subscribe(self.entry_key) as subscription:
 			async for entry in subscription:
 				if ws.closed:
 					break
+				
+				if entry is None:
+					continue
 				
 				try:
 					text = entry.body.decode('utf-8')
@@ -125,6 +135,8 @@ class EntryView(View, StoreMixin, NamespaceMixin, EntryMixin):
 					await ws.send_bytes(entry.body)
 				else:
 					await ws.send_str(text)
+		
+		await future
 
 	async def put(self):
 		if self.entry is None:

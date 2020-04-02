@@ -133,15 +133,24 @@ var Alpaca = (function() {
 
     let promise = makeRequest("POST", "application/javascript", {}, namespace);
 
-    await promise.then(resp => resp.json()).then(resp => {
+    const ws = await promise.then(resp => resp.json()).then(resp => {
       let name = resp.data.url.split("/")[3];
       threeObject.userData.type = type;
       threeObject.userData.name = name;
       threeObject.userData.namespace = namespace;
-      this.listen(namespace, name, callback);
+      return this.listen(namespace, name, callback);
     });
-
-    return promise;
+    
+    threeObject._$alpacaEventStream = ws;
+  };
+  
+  var removeEventListeners = (threeObject) => {
+    if (!threeObject._$alpacaEventStream) {
+      console.warn('no event listeners on object', threeObject);
+    } else {
+      threeObject._$alpacaEventStream.close();
+      delete threeObject._$alpacaEventStream;
+    }
   };
 
   /**
@@ -200,8 +209,8 @@ var Alpaca = (function() {
    *
    * @return {Object} A fetch promise
    */
-  var listen = async function(namespace, name, onMessage) {
-    return await new Promise(resolve => {
+  var listen = function(namespace, name, onMessage) {
+    return new Promise(resolve => {
       let ws = new WebSocket(`ws://${hostname}/${prefix}/${namespace}/${name}`);
       ws.onmessage = onMessage;
       ws.onopen = () => resolve(ws);
@@ -285,6 +294,7 @@ var Alpaca = (function() {
 
   return {
     addEventListener,
+    removeEventListeners,
     configure,
     create,
     listen,

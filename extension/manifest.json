@@ -11,7 +11,7 @@
   "content_scripts": [
     {
       "js": ["three.js", "alpaca.js", "nps.js"],
-      "matches": ["https://science.nature.nps.gov/parks/grsm/species/"]
+      "matches": ["https://maps.nps.gov/species/"]
     },
     {
       "js": ["three.js", "alpaca.js", "google-books.js"],

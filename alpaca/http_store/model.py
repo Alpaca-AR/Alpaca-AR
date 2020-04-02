@@ -6,7 +6,7 @@ from uuid import uuid4
 import json
 from base64 import b64encode
 from collections import defaultdict
-from asyncio import Queue
+from asyncio import Queue, wait_for, TimeoutError
 
 
 __all__ = [
@@ -30,7 +30,12 @@ class Subscription(object):
 		return self
 	
 	async def __anext__(self):
-		return await self._queue.get()
+		try:
+			result = await wait_for(self._queue.get(), 5)
+		except TimeoutError:
+			return None
+		else:
+			return result
 	
 	async def notify(self, value):
 		if self._count > 0:

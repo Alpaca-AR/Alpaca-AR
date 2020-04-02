@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<title>YouTube Video Explorer</title>
+<link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/vuetify@1.5.6/dist/vuetify.min.css" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+<style>
+.loading-icon {
+	animation-duration: 1s;
+	animation-name: spin;
+	animation-iteration-count: infinite;
+	position: fixed;
+	bottom: 2em;
+	left: 0;
+	right: 0;
+	text-align: center;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	
+	to {
+		transform: rotate(360deg);
+	}
+}
+</style>
+<div id="app">
+	<v-app>
+		<v-navigation-drawer v-model="drawerLeft" fixed app>
+			<v-toolbar color="indigo" dark>
+				<v-toolbar-title>History</v-toolbar-title>
+			</v-toolbar>
+			<v-list dense>
+				<v-list-tile>
+					<v-list-tile-content>
+						<v-list-tile-title v-text="currentVideoTitle||'Loading...'" class="grey--text"></v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
+				<v-list-tile v-for="v in history" @click="loadVideo(v)">
+					<v-list-tile-content>
+
+						<v-list-tile-title v-text="v.title"></v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
+			</v-list>
+		</v-navigation-drawer>
+		<v-navigation-drawer v-model="drawerRight" fixed app right>
+			<v-toolbar color="indigo" dark>
+				<v-toolbar-title>Related</v-toolbar-title>
+			</v-toolbar>
+			<v-list dense>
+				<v-list-tile v-for="v in relatedVideos" @click="">
+					<v-list-tile-content>
+						<v-list-tile-title v-text="v.title" @click="loadVideo(v)"></v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
+			</v-list>
+		</v-navigation-drawer>
+		<v-toolbar color="indigo" dark fixed app>
+			<v-toolbar-side-icon @click.stop="drawerLeft = !drawerLeft"></v-toolbar-side-icon>
+			<v-toolbar-title>YouTube Video Explorer</v-toolbar-title>
+			<v-spacer></v-spacer>
+			<v-toolbar-side-icon @click.stop="drawerRight = !drawerRight"></v-toolbar-side-icon>
+		</v-toolbar>
+		<v-content>
+			<v-container>
+				<v-layout justify-space-around align-space-around fill-height>
+					<iframe width="560" height="315" :src="embedSrc" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>
+				</v-layout>
+			</v-container>
+			<v-container>
+				<v-layout>
+					<v-flex xs1 offset-xs5>
+						<v-icon large @click="dislike(currentVideoId)" :color="isDisliked ? 'blue darken-2' : ''">thumb_down</v-icon>
+					</v-flex>
+					<v-flex xs1>
+						<v-icon large @click="like(currentVideoId)" :color="isLiked ? 'blue darken-2' : ''">thumb_up</v-icon>
+					</v-flex>
+				</v-layout>
+			</v-container>
+		</v-content>
+	</v-app>
+	<v-icon v-if="loadingGraph" large class="loading-icon">refresh</v-icon>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.9/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@1.5.6/dist/vuetify.min.js"></script>
+<script src="https://unpkg.com/vue-async-computed@3.5.0"></script>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="https://unpkg.com/d3-force-3d"></script>
+<script src="//accona.eecs.utk.edu:8800/js/alpaca.js"></script>
+<script src="//accona.eecs.utk.edu:8800/js/three.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/QuickHull.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c67fbdcc64ffc970d732d9d3ce77a930761f7f31/examples/js/geometries/ConvexGeometry.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/three.js/c1afee8fea2157a3846b7b9bdf00d4f69d7076eb/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/third_party/three.js/VRControls.js"></script>
+<script src="https://cdn.rawgit.com/google-ar/three.ar.js/83d4f1b2626081d44a3d49a7f16846ddeb144beb/dist/three.ar.min.js"></script>
+<script src="https://cdn.rawgit.com/mrdoob/stats.js/28632bd87e0ea56acafc9b8779d813eb95e62c08/build/stats.min.js"></script>
+<script src="https://unpkg.com/mathjs@4.0.0/dist/math.min.js"></script>
+<script src="https://unpkg.com/timesync@1.0.3/dist/timesync.js"></script>
+<script src="https://unpkg.com/qs@6.5.2/dist/qs.js"></script>
+<script src="https://unpkg.com/svm@0.1.1/lib/svm.js"></script>
+<script src="graph.js"></script>
+<script>
+(() => {
+	const old = THREE.ImageUtils.getDataURL;
+	THREE.ImageUtils.getDataURL = (img) => {
+		if (img.isFakeImage) {
+			return img.url;
+		} else {
+			return old(img);
+		}
+	};
+})();
+</script>
+<script src="https://unpkg.com/@babel/standalone/babel.js"></script>
+<!-- <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script> -->
+<script type="text/babel" data-presets="stage-3" data-plugins="proposal-do-expressions,syntax-do-expressions">
+Alpaca.configure({
+	host: 'accona.eecs.utk.edu:8800',
+});
+
+const idle = () => new Promise((resolve) => window.requestIdleCallback(resolve));
+
+
+const textureLoader = do {
+	const textureLoader = new THREE.TextureLoader();
+	textureLoader.crossOrigin = 'use-credentials';
+	textureLoader;
+};
+
+
+// wraps THREE.js TextureLoader in a promise.
+function loadTexture(url) {
+	return new Promise((resolve, reject) => {
+		textureLoader.load(url, (texture) => {
+			resolve(texture);
+		}, undefined, (err) => {
+			reject(err);
+		});
+	});
+};
+
+class BatchPromise {
+
+	constructor(count) {
+		this.count = count;
+		this.promises = [];
+	}
+	
+	wrap(promise) {
+		this.promises.push(promise);
+		if (this.promises.length === this.count) {
+			return this.promises.shift();
+		} else {
+			return Promise.resolve();
+		}
+	}
+	
+	drain() {
+		const promise = Promise.all(this.promises);
+		this.promises = [];
+		return promise;
+	}
+
+};
+
+window.vm = new Vue({
+
+	el: '#app',
+	
+	data: {
+		drawerLeft: null,
+		drawerRight: false,
+		history: [],
+		//currentVideoId: 'Xda2BeH84-I',
+		currentVideoId: '4iRJDDjejCI',
+		loadingGraph: false,
+		limit: 10,
+		breadth: 10,
+		liked: [],
+		disliked: [],
+	},
+	
+	computed: {
+	
+		embedSrc() {
+			const currentVideoId = this.currentVideoId;
+			
+			return `https://www.youtube.com/embed/${currentVideoId}`;
+		},
+		
+		relatedVideos() {
+			const related = this.related;
+			
+			if (!related) return;
+			
+			return related.items.map((d) => {
+				const title = d.snippet.title;
+				const videoId = d.id.videoId;
+				
+				return { title, videoId };
+			});
+		},
+		
+		currentVideoTitle() {
+			const details = this.details;
+			console.log({ details });
+			
+			if (!details) return;
+			
+			return details.items[0].snippet.title;
+		},
+		
+		isLiked() {
+			const liked = this.liked;
+			const currentVideoId = this.currentVideoId;
+			
+			const index = liked.findIndex((d) => d.items[0].id === currentVideoId);
+			return index !== -1;
+		},
+		
+		isDisliked() {
+			const disliked = this.disliked;
+			const currentVideoId = this.currentVideoId;
+			
+			const index = disliked.findIndex((d) => d.items[0].id === currentVideoId);
+			return index !== -1;
+		},
+		
+		trimmedGraph() {
+			const graph = this.graph;
+			const liked = this.liked;
+			const disliked = this.disliked;
+			if (!graph) return;
+			
+			if (!liked.length && !disliked.length) {
+				return graph;
+			}
+			
+			const nodes = graph.nodes;
+			const edges = graph.edges;
+			
+			let featureCount = 0;
+			const featureMap = new Map();
+			for (let node of [...nodes, ...liked, ...disliked]) {
+				if (node.root) continue;
+				const details = node.details || node;
+				if (!details) continue;
+				const tags = details.items[0].snippet.tags;
+				const categoryId = details.items[0].snippet.categoryId;
+				const channelId = details.items[0].snippet.channelId;
+				const features = [];
+				features.push(categoryId);
+				features.push(channelId);
+				if (tags) features.push(...tags.map((d) => d.toLowerCase()));
+				for (let feature of features) {
+					if (featureMap.has(feature)) {
+						continue;
+					}
+					featureMap.set(feature, featureCount++);
+				}
+			}
+			
+			console.log(featureMap);
+			
+			const data = [...nodes, ...liked, ...disliked].map((node) => {
+				if (node.root) return;
+				const details = node.details || node;
+				if (!details) return;
+				const row = new Array(featureCount).fill(0);
+				const tags = details.items[0].snippet.tags;
+				const categoryId = details.items[0].snippet.categoryId;
+				const channelId = details.items[0].snippet.channelId;
+				const features = [];
+				features.push(categoryId);
+				features.push(channelId);
+				if (tags) features.push(...tags.map((d) => d.toLowerCase()));
+				for (let feature of features) {
+					row[featureMap.get(feature)] = 1;
+				}
+				return row;
+			}).filter((d) => {
+				return !!d;
+			});
+			
+			const labels = [...nodes, ...liked, ...disliked].map((node) => {
+				if (node.root) return;
+				const details = node.details || node;
+				const videoId = details.items[0].id;
+				if (liked.find((d) => d.items[0].id === videoId)) {
+					return +1;
+				} else if (disliked.find((d) => d.items[0].id === videoId)) {
+					return -1;
+				} else {
+					return 0;
+				}
+			}).filter((d) => {
+				return d !== undefined;
+			});
+			
+			const trainData = [];
+			const trainLabel = [];
+			for (let i=0; i<data.length; ++i) {
+				if (labels[i] !== 0) {
+					trainData.push(data[i]);
+					trainLabel.push(labels[i]);
+				}
+			}
+			
+			if (trainData.length < 2) {
+				console.warn('not enough data to train');
+				return graph;
+			}
+			
+			if (!(trainLabel.includes(-1) && trainLabel.includes(1))) {
+				console.warn('need positive and negative training sets');
+				return graph;
+			}
+			
+			console.log({ trainData, trainLabel });
+			
+			const svm = new svmjs.SVM();
+			svm.train(trainData, trainLabel, { C: 0.05 });
+			const newLabel = svm.predict(data);
+			
+			console.log({ newLabel });
+			
+			const newNodes = [];
+			const newNodeSet = new Set();
+			for (let i=0; i<nodes.length; ++i) {
+				const label = newLabel[i];
+				const node = nodes[i];
+				const videoId = node.videoId;
+				if (label > 0) {
+					newNodes.push(node);
+					newNodeSet.add(videoId);
+				}
+			}
+			
+			const newEdges = [];
+			for (let edge of edges) {
+				const source = edge.source;
+				const target = edge.target;
+				if (newNodeSet.has(source) && newNodeSet.has(target)) {
+					newEdges.push(edge);
+				}
+			}
+			
+			return Object.seal({
+				nodes: newNodes,
+				edges: newEdges,
+			});
+		},
+	
+	},
+	
+	asyncComputed: {
+	
+		related: {
+			watch() {
+				this.currentVideoId;
+			},
+			async get() {
+			const currentVideoId = this.currentVideoId;
+			const url = `http://accona.eecs.utk.edu:8806/related/${currentVideoId}`;
+
+			const response = await fetch(url, {
+				credentials: 'include',
+				mode: 'cors',
+			});
+			const data = await response.json();
+			return Object.freeze(data);
+		},
+		},
+		
+		details: {
+			watch() {
+				this.currentVideoId;
+			},
+			async get() {
+			const currentVideoId = this.currentVideoId;
+			const url = `http://accona.eecs.utk.edu:8806/details/${currentVideoId}`;
+
+			const response = await fetch(url, {
+				credentials: 'include',
+				mode: 'cors',
+			});
+			const data = await response.json();
+			return Object.freeze(data);
+		},
+		},
+		
+		graph: {
+			watch() {
+				this.currentVideoId;
+				this.limit;
+				this.breadth;
+			},
+			async get() {
+				const currentVideoId = this.currentVideoId;
+				const limit = this.limit;
+				const breadth = this.breadth;
+				
+				const nextVideoIds = [];
+				nextVideoIds.push(currentVideoId);
+				
+				const nodes = new Map();
+				const edges = new Map();
+				
+				for (let i=0; nextVideoIds.length && i < breadth && nodes.size < limit; ++i) {
+					const videoId = nextVideoIds.shift();
+					
+					const parent = do {
+						const key = videoId;
+						if (nodes.has(key)) {
+							nodes.get(key);
+						} else {
+							const node = { videoId: key, root: true };
+							nodes.set(key, node);
+							node;
+						}
+					};
+					
+					const url = `http://accona.eecs.utk.edu:8806/related/${videoId}`;
+					//console.log('getting url', url);
+					const related = await fetch(url, {
+						credentials: 'include',
+						mode: 'cors',
+					}).then((response) => response.json());
+					
+					for (let d of related.items) {
+						const edgeId = d.id.videoId;
+						const title = d.snippet.title;
+						const thumbnail = d.snippet.thumbnails.high || d.snippet.default;
+						if (!thumbnail) console.warn(d.snippet.thumbnails);
+						
+						const url = `http://accona.eecs.utk.edu:8806/details/${edgeId}`;
+						const details = await fetch(url, {
+							credentials: 'include',
+							mode: 'cors',
+						}).then((response) => response.json());
+						
+						const edgeNode = do {
+							const key = edgeId;
+							if (nodes.has(key)) {
+								nodes.get(key);
+							} else {
+								const node = { videoId: key, thumbnail, details };
+								nodes.set(key, node);
+								node;
+							}
+						};
+						
+						const edge = do {
+							const key = `${videoId},${edgeId}`;
+							if (edges.has(key)) {
+								edges.get(key);
+							} else {
+								const edge = { source: videoId, target: edgeId };
+								edges.set(key, edge);
+								edge;
+							}
+						};
+						
+						nextVideoIds.push(edgeId);
+					}
+				}
+				
+				return Object.seal({
+					nodes: Array.from(nodes.values()),
+					edges: Array.from(edges.values()),
+				});
+		},
+		},
+		
+		layout: {
+			watch() {
+				this.trimmedGraph;
+			},
+			async get() {
+			const graph = this.trimmedGraph;
+			if (!graph) return;
+			
+			const nodes = JSON.parse(JSON.stringify(graph.nodes));
+			const edges = JSON.parse(JSON.stringify(graph.edges));
+			
+			const links = d3.forceLink()
+				.links(edges)
+				.id((d) => d.videoId);
+			
+			const simulation = d3.forceSimulation()
+				.numDimensions(3)
+				.nodes(nodes)
+				.force('link', links)
+				.stop();
+			
+			for (let i=0; i<30; ++i) {
+				await idle();
+				simulation.tick();
+			}
+			
+			return Object.seal({
+				nodes,
+				edges,
+			});
+		},
+		},
+		
+		scene: {
+			watch() {
+				this.layout;
+			},
+			async get() {
+			const layout = this.layout;
+			if (!layout) return;
+			
+			const scene = new THREE.Scene();
+			
+			const xExtents = d3.extent(layout.nodes, (d) => d.x);
+			const yExtents = d3.extent(layout.nodes, (d) => d.y);
+			const zExtents = d3.extent(layout.nodes, (d) => d.z);
+			
+			const batch = new BatchPromise(6);
+			const images = [];
+			const eventedObjects = [];
+			
+			const up = new THREE.Texture({
+				uuid: THREE.Math.generateUUID(),
+				url: `http://accona.eecs.utk.edu:8800/img/up.png`,
+				isFakeImage: true,
+			});
+			images.push(up.image);
+			
+			const down = new THREE.Texture({
+				uuid: THREE.Math.generateUUID(),
+				url: `http://accona.eecs.utk.edu:8800/img/down.png`,
+				isFakeImage: true,
+			});
+			images.push(down.image);
+			
+			
+			for (let node of layout.nodes) {
+				if (!node.thumbnail) continue;
+				await batch.wrap((async () => {
+					const group = new THREE.Group();
+					group.userData.isBillboard = true;
+					const x = (node.x - xExtents[0]) / (xExtents[1] - xExtents[0]) - 0.5;
+					const y = (node.y - yExtents[0]) / (yExtents[1] - yExtents[0]) - 0.5;
+					const z = (node.z - zExtents[0]) / (zExtents[1] - zExtents[0]) - 0.5;
+					group.position.set(x, y, z);
+					group.updateMatrixWorld();
+					
+					const scale = Math.max(node.thumbnail.width, node.thumbnail.height);
+					const width = node.thumbnail.width / scale * 0.1;
+					const height = node.thumbnail.height / scale * 0.1;
+					const geometry = new THREE.PlaneBufferGeometry(width, height);
+					
+					const url = node.thumbnail.url.replace('https://i.ytimg.com/', 'http://accona.eecs.utk.edu:8806/thumbnail/');
+					const image = {};
+					image.uuid = THREE.Math.generateUUID();
+					image.url = url;
+					image.isFakeImage = true;
+					images.push(image);
+					const map = new THREE.Texture(image);
+					//const map = await loadTexture(url);
+					
+					const side = THREE.DoubleSide;
+					const material = new THREE.MeshBasicMaterial({ map, side });
+					
+					const mesh = new THREE.Mesh(geometry, material);
+					group.add(mesh);
+					
+					await Alpaca.addEventListener('press', mesh, () => {
+						this.loadVideo(node);
+					}, 'alpaca');
+					
+					const leftButton = new THREE.Mesh(
+						new THREE.PlaneBufferGeometry(width/2, height/2),
+						new THREE.MeshBasicMaterial({ map: down, side })
+					);
+					leftButton.position.set(-width/2+width/2/2, height/2+height/2/2, 0);
+					leftButton.updateMatrixWorld();
+					/*
+					await Alpaca.addEventListener('press', leftButton, () => {
+						console.log('left press', node.videoId);
+						this.dislike(node.videoId);
+					}, 'alpaca');
+					eventedObjects.push(leftButton);
+					*/
+					group.add(leftButton);
+					
+					const rightButton = new THREE.Mesh(
+						new THREE.PlaneBufferGeometry(width/2, height/2),
+						new THREE.MeshBasicMaterial({ map: up, side })
+					);
+					rightButton.position.set(width/2-width/2/2, height/2+height/2/2, 0);
+					rightButton.updateMatrixWorld();
+					/*
+					await Alpaca.addEventListener('press', rightButton, () => {
+						console.log('right press', node.videoId);
+						this.like(node.videoId);
+					}, 'alpaca');
+					eventedObjects.push(rightButton);
+					*/
+					group.add(rightButton);
+					
+					/*
+					const bg = new THREE.Mesh(
+						new THREE.PlaneBufferGeometry(1.1 * width, 1.1 * height),
+						new THREE.MeshBasicMaterial({ color: 0x111111, side })
+					);
+					bg.position.set(0, 0, -0.001);
+					bg.updateMatrixWorld();
+					group.add(bg);
+					*/
+					
+					scene.add(group);
+				})());
+			}
+			
+			await batch.drain();
+			
+			scene._$images = images;
+			scene._$eventedObjects = eventedObjects;
+			
+			return scene;
+		},
+		},		
+	},
+	
+	methods: {
+	
+		loadVideo(video) {
+			const currentVideoTitle = this.currentVideoTitle;
+			const currentVideoId = this.currentVideoId;
+			const history = this.history;
+
+			console.log({ video, currentVideoTitle, currentVideoId });
+			
+			if (!currentVideoTitle) {
+				console.warn('current video title not available');
+				const unwatch = this.$watch('currentVideoTitle', () => {
+					this.loadVideo(video);
+					unwatch();
+				});
+				return;
+			}
+			
+			const title = currentVideoTitle;
+			const videoId = currentVideoId;
+			
+			const index = history.findIndex((d) => d.videoId === video.videoId);
+			if (index !== -1) history.splice(index, 1);
+			history.unshift({ videoId, title });
+			
+			this.currentVideoId = video.videoId;
+			this.drawerRight = false;
+			this.drawerLeft = false;
+		},
+		
+		async like(videoId) {
+			const disliked = this.disliked;
+			const liked = this.liked;
+			
+			const url = `http://accona.eecs.utk.edu:8806/details/${videoId}`;
+			const response = await fetch(url, {
+				credentials: 'include',
+				mode: 'cors',
+			});
+			const details = await response.json();
+			
+			const dislikeIndex = disliked.findIndex((d) => d.items[0].id === videoId);
+			if (dislikeIndex !== -1) disliked.splice(dislikeIndex, 1);
+			
+			const likeIndex = liked.findIndex((d) => d.items[0].id === videoId);
+			if (likeIndex !== -1) liked.splice(likeIndex, 1);
+			else liked.push(details);
+			
+			console.log({ liked });
+		},
+		
+		async dislike(videoId) {
+			const disliked = this.disliked;
+			const liked = this.liked;
+			
+			const url = `http://accona.eecs.utk.edu:8806/details/${videoId}`;
+			const response = await fetch(url, {
+				credentials: 'include',
+				mode: 'cors',
+			});
+			const details = await response.json();
+			
+			const likeIndex = liked.findIndex((d) => d.items[0].id === videoId);
+			if (likeIndex !== -1) liked.splice(likeIndex, 1);
+			
+			const dislikeIndex = disliked.findIndex((d) => d.items[0].id === videoId);
+			if (dislikeIndex !== -1) disliked.splice(dislikeIndex, 1);
+			else disliked.push(details);
+			
+			console.log({ disliked });
+		},
+	
+	},
+	
+	watch: {
+		
+		async scene(scene, oldScene) {
+			if (!scene) return;
+			
+				if (oldScene) {
+					console.log('oldScene', oldScene);
+					oldScene._$eventedObjects.forEach((d) => {
+						Alpaca.removeEventListeners(d);
+					});
+				}
+			
+			const x = scene.toJSON();
+			console.log(x);
+			
+			const response = await do {
+				const contentType = 'application/json';
+				const body = JSON.stringify(x);
+				const namespace = 'alpaca';
+				const name = 'index.json';
+				Alpaca.update(contentType, body, namespace, name);
+			};
+			const data = await response.json();
+			console.log('updated scene', data);
+		},
+		
+		graph(graph) {
+			this.loadingGraph = false;
+		},
+	
+	},
+
+});
+</script>

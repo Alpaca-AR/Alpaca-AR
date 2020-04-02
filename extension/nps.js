@@ -1,10 +1,8 @@
-const url = navigator.userAgent.includes("X11")
-    ? "http://accona.eecs.utk.edu:8800"
-    : "http://accona.eecs.utk.edu:8599",
+const url = "http://127.0.0.1:8123",
   mapSelector =
     ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(1) > .leaflet-tile-container:last-child",
   speciesSelector =
-    ".npmap-map .leaflet-pane > .leaflet-tile-pane > .leaflet-layer:nth-child(n+2)";
+    ".npmap-map .leaflet-tile-pane > .leaflet-layer:nth-child(2) > .leaflet-tile-container:last-child";
 
 document.onreadystatechange = () => {
   if (document.readyState === "complete") initNPS();
@@ -122,11 +120,10 @@ async function mapWatcher(element) {
     geometry = new THREE.PlaneBufferGeometry(scale, scale, segments, segments);
   for (let image of images) {
     if (image.src.startsWith("data")) continue;
-    const transform = image.style.transform,
-      match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(transform),
-      x = (-256 + +match[1]) / 256,
-      y = (-256 + +match[2]) / -256,
-      z = +match[3] / 256;
+    const x = Math.floor(parseInt(image.style.left) / 256),
+      y = -Math.floor(parseInt(image.style.top) / 256),
+      z = 0;
+    //console.log({ xi: parseInt(image.style.left), yi: parseInt(image.style.top), x, y });
 
     tiles[x + ", " + y] = true;
     if (x < minX) minX = x;
@@ -137,11 +134,15 @@ async function mapWatcher(element) {
     const { promise, texture } = loadTexture(image.src);
     promises.push(promise);
 
-    const { promise: promise2, texture: texture2 } = loadTexture(
-      image.src
-        .replace(/v4\/[^/]*\//, "v4/mapbox.terrain-rgb/")
-        .replace(".png", ".pngraw")
-    );
+    // https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/10/278/402@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg
+    // http://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/10/278/402.pngraw?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q
+
+    let coords;
+    if (!coords) coords = image.src.match(/tiles\/256\/(\d+\/\d+\/\d+)/);
+    if (!coords) coords = image.src.match(/v4\/[^/]+\/(\d+\/\d+\/\d+)/);
+    const heightUrl = `https://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/${coords[1]}.pngraw?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q`;
+
+    const { promise: promise2, texture: texture2 } = loadTexture(heightUrl);
     promises.push(promise2);
 
     const material = new THREE.ShaderMaterial({
@@ -196,7 +197,7 @@ async function mapWatcher(element) {
     mapGroup.add(mesh);
   }
 
-  let error = loadTexture(url + "/img/512x512.png"),
+  let error = loadTexture(url + "/img/wood.jpg"),
     wood = loadTexture(url + "/img/wood.jpg");
 
   promises.push(error.promise);
@@ -287,22 +288,23 @@ async function speciesWatcher() {
       );
     for (let image of images) {
       if (image.src.startsWith("data")) continue;
-      const transform = image.style.transform,
-        match = /translate3d\((-?\d+)px, (-?\d+)px, (-?\d+)px\)/.exec(
-          transform
-        ),
-        x = (-256 + +match[1]) / 256,
-        y = (-256 + +match[2]) / -256,
-        z = +match[3] / 256;
+      const x = Math.floor(parseInt(image.style.left) / 256),
+        y = -Math.floor(parseInt(image.style.top) / 256),
+        z = 0;
+      //console.log({ xi: parseInt(image.style.left), yi: parseInt(image.style.top), x, y });
 
       const { promise, texture } = loadTexture(image.src);
       promises.push(promise);
 
-      const { promise: promise2, texture: texture2 } = loadTexture(
-        image.src
-          .replace(/v4\/[^/]*\//, "v4/mapbox.terrain-rgb/")
-          .replace(".png", ".pngraw")
-      );
+      // https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/10/278/402@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg
+      // http://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/10/278/402.pngraw?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q
+  
+      let coords;
+      if (!coords) coords = image.src.match(/tiles\/256\/(\d+\/\d+\/\d+)/);
+      if (!coords) coords = image.src.match(/v4\/[^/]+\/(\d+\/\d+\/\d+)/);
+      const heightUrl = `https://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/${coords[1]}.pngraw?access_token=pk.eyJ1IjoibnBzIiwiYSI6IkdfeS1OY1UifQ.K8Qn5ojTw4RV1GwBlsci-Q`;
+  
+      const { promise: promise2, texture: texture2 } = loadTexture(heightUrl);
       promises.push(promise2);
 
       const material = new THREE.ShaderMaterial({

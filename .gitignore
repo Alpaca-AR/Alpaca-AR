@@ -1,0 +1,6 @@
+__pycache__
+*.egg-info
+venv
+.mk.*
+client_secret.json*
+*.dbm
