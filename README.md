@@ -12,7 +12,7 @@ Abstract:
 > examples. With our extension, the creation and control of augmented reality
 > devices becomes transparent, as if they were natively part of the browser.
 
-Published in IEEE VR 2020 [[video](https://files.are.mediocreatbest.xyz/x31k4e8e.mp4)] [[paper](https://files.are.mediocreatbest.xyz/alpaca-ieeevr-2020-camera-ready.pdf)] [[slides](https://files.are.mediocreatbest.xyz/vt2auonw.pdf)]
+Published in IEEE VR 2020 [[Paper](https://files.are.mediocreatbest.xyz/alpaca-ieeevr-2020-camera-ready.pdf)] [[Demo Video](https://files.are.mediocreatbest.xyz/x31k4e8e.mp4)] [[Presentation Video](https://files.are.mediocreatbest.xyz/x31k4e8e.mp4)] [[Presentation Slides](https://files.are.mediocreatbest.xyz/vt2auonw.pdf)]
 
 ## Getting Started
 
